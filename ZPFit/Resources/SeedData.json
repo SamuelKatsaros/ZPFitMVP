@@ -1,0 +1,73 @@
+{
+  "trainer": {
+    "id": "zach_powell",
+    "name": "Zach Powell",
+    "bio": "Professional athlete and fitness coach dedicated to helping you reach your peak performance.",
+    "imageURL": "trainer_zach"
+  },
+  "programs": [
+    {
+      "id": "prog_shred_30",
+      "title": "30-Day Shred",
+      "subtitle": "High intensity fat loss",
+      "difficulty": "Intermediate",
+      "durationWeeks": 4,
+      "coverImage": "prog_shred_cover",
+      "workouts": [
+        {
+          "id": "wo_hiit_01",
+          "title": "Full Body Ignition",
+          "type": "HIIT",
+          "durationMinutes": 30,
+          "difficulty": "Intermediate",
+          "blocks": [
+            {
+              "title": "Warmup",
+              "orderIndex": 0,
+              "steps": [
+                { "type": "work", "durationSeconds": 60, "exerciseId": "ex_jumping_jacks" },
+                { "type": "rest", "durationSeconds": 15 }
+              ]
+            },
+            {
+              "title": "Main Circuit",
+              "orderIndex": 1,
+              "steps": [
+                { "type": "work", "durationSeconds": 45, "exerciseId": "ex_burpees" },
+                { "type": "rest", "durationSeconds": 15 },
+                { "type": "work", "durationSeconds": 45, "exerciseId": "ex_squats" },
+                { "type": "rest", "durationSeconds": 15 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "exercises": [
+    {
+      "id": "ex_jumping_jacks",
+      "name": "Jumping Jacks",
+      "instructions": "Start standing, jump legs out and arms up. Return to start.",
+      "videoURL": "video_jumping_jacks",
+      "thumbnailURL": "thumb_jumping_jacks",
+      "muscleGroup": "Cardio"
+    },
+    {
+      "id": "ex_burpees",
+      "name": "Burpees",
+      "instructions": "Drop to chest, push up, jump feet in, jump up.",
+      "videoURL": "video_burpees",
+      "thumbnailURL": "thumb_burpees",
+      "muscleGroup": "Full Body"
+    },
+    {
+      "id": "ex_squats",
+      "name": "Air Squats",
+      "instructions": "Hips back and down, chest up. Stand tall.",
+      "videoURL": "video_squats",
+      "thumbnailURL": "thumb_squats",
+      "muscleGroup": "Legs"
+    }
+  ]
+}
