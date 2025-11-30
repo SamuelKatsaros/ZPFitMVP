@@ -5,80 +5,79 @@ struct ProgramListView: View {
     @State private var showWorkout = false
     @Environment(\.dismiss) private var dismiss
     
+    @AppStorage("selectedPlan") private var selectedPlan: String?
+    
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.ZP.background.ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // Header
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "arrow.left")
-                                    .font(.title2)
-                                    .foregroundStyle(Color.white)
+        if selectedPlan != nil {
+            TodaysWorkoutView()
+        } else {
+            NavigationStack {
+                ZStack {
+                    Color.ZP.background.ignoresSafeArea()
+                    
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            // Header
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Programs")
+                                    .font(.ZP.largeTitle)
+                                    .foregroundStyle(Color.ZP.textPrimary)
+                                
+                                Text("Choose your path. Build your discipline.")
+                                    .font(.ZP.body)
+                                    .foregroundStyle(Color.ZP.textSecondary)
                             }
-                            .padding(.bottom, 8)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
                             
-                            Text("Programs")
-                                .font(.ZP.largeTitle)
-                                .foregroundStyle(Color.ZP.textPrimary)
-                            
-                            Text("Choose your path. Build your discipline.")
-                                .font(.ZP.body)
-                                .foregroundStyle(Color.ZP.textSecondary)
+                            // Program Cards
+                            VStack(spacing: 24) {
+                                NavigationLink(destination: ProgramDetailView(program: Program(id: "jacklete", title: "Jacklete", subtitle: "Build muscle, strength, and explosive power", difficulty: "Advanced", durationWeeks: 9, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg"))) {
+                                    PremiumProgramCard(
+                                        title: "Jacklete",
+                                        description: "Chris Bumstead's new approach to building muscle, strength, and explosive power.",
+                                        difficulty: "Advanced",
+                                        duration: "9 WEEKS",
+                                        phases: ["Phase 1", "Phase 2", "Phase 3"],
+                                        imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg",
+                                        accentColor: .purple
+                                    )
+                                }
+                                .buttonStyle(ZPScaleButtonStyle())
+                                
+                                NavigationLink(destination: ProgramDetailView(program: Program(id: "stndrd6", title: "STNDRD6: SHIFT", subtitle: "6-week transformation program", difficulty: "Intermediate", durationWeeks: 6, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg"))) {
+                                    PremiumProgramCard(
+                                        title: "STNDRD6: SHIFT",
+                                        description: "A 6-week transformation to build muscle, strength, and confidence through proven methods.",
+                                        difficulty: "Intermediate",
+                                        duration: "6 WEEKS",
+                                        phases: [],
+                                        imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg",
+                                        accentColor: .white
+                                    )
+                                }
+                                .buttonStyle(ZPScaleButtonStyle())
+                                
+                                NavigationLink(destination: ProgramDetailView(program: Program(id: "hybrid", title: "Hybrid Athlete", subtitle: "Endurance and strength combined", difficulty: "Expert", durationWeeks: 12, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG"))) {
+                                    PremiumProgramCard(
+                                        title: "Hybrid Athlete",
+                                        description: "Combine endurance and strength for the ultimate functional physique.",
+                                        difficulty: "Expert",
+                                        duration: "12 WEEKS",
+                                        phases: [],
+                                        imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG",
+                                        accentColor: .blue
+                                    )
+                                }
+                                .buttonStyle(ZPScaleButtonStyle())
+                            }
+                            .padding(.horizontal, 20)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                        
-                        // Program Cards
-                        VStack(spacing: 24) {
-                            NavigationLink(destination: ProgramDetailView(program: Program(id: "jacklete", title: "Jacklete", subtitle: "Build muscle, strength, and explosive power", difficulty: "Advanced", durationWeeks: 9, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg"))) {
-                                PremiumProgramCard(
-                                    title: "Jacklete",
-                                    description: "Chris Bumstead's new approach to building muscle, strength, and explosive power.",
-                                    difficulty: "Advanced",
-                                    duration: "9 WEEKS",
-                                    phases: ["Phase 1", "Phase 2", "Phase 3"],
-                                    imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg",
-                                    accentColor: .purple
-                                )
-                            }
-                            .buttonStyle(ZPScaleButtonStyle())
-                            
-                            NavigationLink(destination: ProgramDetailView(program: Program(id: "stndrd6", title: "STNDRD6: SHIFT", subtitle: "6-week transformation program", difficulty: "Intermediate", durationWeeks: 6, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg"))) {
-                                PremiumProgramCard(
-                                    title: "STNDRD6: SHIFT",
-                                    description: "A 6-week transformation to build muscle, strength, and confidence through proven methods.",
-                                    difficulty: "Intermediate",
-                                    duration: "6 WEEKS",
-                                    phases: [],
-                                    imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg",
-                                    accentColor: .white
-                                )
-                            }
-                            .buttonStyle(ZPScaleButtonStyle())
-                            
-                            NavigationLink(destination: ProgramDetailView(program: Program(id: "hybrid", title: "Hybrid Athlete", subtitle: "Endurance and strength combined", difficulty: "Expert", durationWeeks: 12, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG"))) {
-                                PremiumProgramCard(
-                                    title: "Hybrid Athlete",
-                                    description: "Combine endurance and strength for the ultimate functional physique.",
-                                    difficulty: "Expert",
-                                    duration: "12 WEEKS",
-                                    phases: [],
-                                    imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG",
-                                    accentColor: .blue
-                                )
-                            }
-                            .buttonStyle(ZPScaleButtonStyle())
-                        }
-                        .padding(.horizontal, 20)
+                        .padding(.bottom, 100)
                     }
-                    .padding(.bottom, 100)
                 }
+                .navigationBarHidden(true)
             }
-            .navigationBarHidden(true)
         }
     }
 }

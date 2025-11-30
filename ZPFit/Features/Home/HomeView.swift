@@ -6,8 +6,10 @@ struct HomeView: View {
     @State private var searchText = ""
     @AppStorage("selectedPlan") private var selectedPlan: String?
     @State private var showPlanSelection = false
+    @Binding var selectedTab: MainTabView.Tab
     
-    init() {
+    init(selectedTab: Binding<MainTabView.Tab>) {
+        _selectedTab = selectedTab
         _viewModel = StateObject(wrappedValue: HomeViewModel(modelContainer: DIContainer.shared.persistenceService.container))
     }
     
@@ -22,7 +24,7 @@ struct HomeView: View {
                         HomeHeader()
                         
                         // Hero Section (Program Status)
-                        HeroSection(selectedPlan: selectedPlan, showPlanSelection: $showPlanSelection)
+                        HeroSection(selectedPlan: selectedPlan, showPlanSelection: $showPlanSelection, selectedTab: $selectedTab)
                         
                         // Featured Workouts (Now before Stats)
                         FeaturedWorkoutsSection()
@@ -98,6 +100,7 @@ struct HomeHeader: View {
 struct HeroSection: View {
     let selectedPlan: String?
     @Binding var showPlanSelection: Bool
+    @Binding var selectedTab: MainTabView.Tab
     
     // Helper to get program details based on ID
     private var programDetails: (title: String, image: String, difficulty: String) {
@@ -217,7 +220,7 @@ struct HeroSection: View {
                                 .foregroundStyle(Color.purple)
                                 
                                 // Workout Title
-                                Text("Chest + Shoulders")
+                                Text("Abs + Cardio")
                                     .font(.ZP.title2)
                                     .foregroundStyle(Color.white)
                             }
@@ -225,17 +228,17 @@ struct HeroSection: View {
                             Spacer()
                             
                             // Start Button
-                            Button(action: { /* Start workout */ }) {
+                            Button(action: { selectedTab = .programs }) {
                                 Text("Start Day 1")
-                                    .font(.ZP.headline)
+                                    .font(.system(size: 14, weight: .bold))
                                     .foregroundStyle(Color.white)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 10)
-                                    .background(Color.blue)
-                                    .cornerRadius(20)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color(red: 0.0, green: 0.35, blue: 0.9))
+                                    .cornerRadius(12)
                             }
                         }
-                        .padding(20)
+                        .padding(16)
                     }
                     .frame(height: 220)
                 }

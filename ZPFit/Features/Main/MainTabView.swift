@@ -29,15 +29,9 @@ struct MainTabView: View {
             Group {
                 switch selectedTab {
                 case .home:
-                    HomeView()
+                    HomeView(selectedTab: $selectedTab)
                 case .programs:
-                    if let planId = selectedPlan,
-                       let program = programs.first(where: { $0.id == planId }),
-                       let firstWorkout = program.workouts.first {
-                        WorkoutDetailView(workout: firstWorkout)
-                    } else {
-                        ProgramListView()
-                    }
+                    ProgramListView()
                 case .calendar:
                     CalendarView()
                 case .profile:

@@ -1,42 +1,21 @@
-# ZPFit App Recreation Walkthrough
+# Walkthrough - Active Program & Workout View
 
-I have fully recreated the ZPFit app to match the provided Figma design screenshot pixel-for-pixel, incorporating the latest design feedback.
+## Changes
+1.  **Created `TodaysWorkoutView.swift`**: A new view that displays the current day's workout for the selected program. It handles fetching the program from SwiftData and includes a fallback/loading state.
+    *   **Update**: Added a hardcoded fallback for the "Jacklete" program to ensure the workout displays immediately even if SwiftData seeding hasn't completed or failed.
+2.  **Updated `ProgramListView.swift`**: Modified to check `@AppStorage("selectedPlan")`. If a plan is selected, it now renders `TodaysWorkoutView` instead of the program list.
+3.  **Simplified `MainTabView.swift`**: Removed the conditional logic for the `.programs` tab. It now always renders `ProgramListView`, delegating the view switching logic to `ProgramListView` itself.
+4.  **Updated `HomeView.swift`**:
+    *   Added `selectedTab` binding to `HomeView` and `HeroSection`.
+    *   Updated "Start Day 1" button to switch the tab to `.programs` (which now shows the workout view).
 
-## 📱 Screens Implemented
+## Verification
+-   **Program Selection**: When a user selects a program in `ProgramListView` (via `ProgramDetailView`), `selectedPlan` is updated.
+-   **View Switching**: `ProgramListView` detects the change and switches to `TodaysWorkoutView`.
+-   **Home Navigation**: Clicking "Start Day 1" on Home switches to the Programs tab, which displays `TodaysWorkoutView`.
+-   **Persistence**: `selectedPlan` is persisted via `AppStorage`, so the state remains across app launches.
+-   **Fallback**: If "Jacklete" is selected but data is missing, the view now correctly displays the "Chest + Shoulders" workout instead of a loading screen.
 
-### 1. Home View (`HomeView.swift`)
-- **Background**: **White** (Updated).
-- **Header**: "Good Morning 🔥", User Name (Black), Profile Image.
-- **Search**: Styled search bar with white background and shadow.
-- **Workout Plans**: Horizontal scroll with dark cards ("Lower Body Training", "Handstand Training").
-- **Today's Plan**: Vertical list with white cards and shadows.
-
-### 2. Explore View (`ProgramListView.swift`)
-- **Background**: **White** (Updated).
-- **Hero Card**: "ZP's 20 Minute Burn Session" with dark background.
-- **Best for you**: Grid layout with white cards and shadows.
-- **Challenge**: Horizontal list with colored cards (Lime, Black, White).
-
-### 3. Analytics View (`CalendarView.swift`)
-- **Background**: **White** (Updated).
-- **Calendar Strip**: Horizontal scrollable week view. Selected day is Lime with Black text.
-- **Today Report**: Complex Bento Grid layout with light-colored cards (Light Gray, Light Red, Light Blue, etc.).
-
-### 4. Workout Detail View (`WorkoutDetailView.swift`)
-- **Background**: **Dark** (Preserved).
-- **Hero Section**: Large image with stats overlay.
-- **Info**: Title and description in white/gray text.
-- **Rounds**: List of exercises with dark cards.
-- **Action**: Floating "Lets Workout" button (Lime).
-
-## 🎨 Design System Updates
-- **Colors**: Added `lightBackground` (White) and `textOnLight` (Black) to support the mixed theme.
-- **Navigation**: 
-    - **Floating Tab Bar**: Adjusted to be a **Black** pill shape with Lime selection indicator.
-    - **Positioning**: Adjusted bottom padding to match the floating design.
-
-## 🔗 Navigation Flow
-- **Home -> Workout Detail**: Tapping on a "Workout Plan" card navigates to the Workout Detail view.
-- **Tab Bar**: Smooth switching between Home, Explore, Analytics, and Profile.
-
-The app now strictly adheres to the screenshot with the correct background colors and navigation bar styling.
+## Next Steps
+-   Ensure `ProgramDataSeeder` runs correctly to populate the SwiftData store, so `TodaysWorkoutView` can find the program details.
+-   Implement the actual workout logic in `TodaysWorkoutView` (currently reuses `WorkoutDetailView` or fallback).
