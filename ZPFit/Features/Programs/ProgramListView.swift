@@ -3,200 +3,193 @@ import SwiftData
 
 struct ProgramListView: View {
     @State private var showWorkout = false
-    
-    // Sample workout for the hero card
-    private var heroWorkout: Workout {
-        let workout = Workout(
-            id: "hero-workout",
-            title: "ZP's 20 Minute Burn Session",
-            type: "HIIT",
-            durationMinutes: 20,
-            difficulty: "Intermediate"
-        )
-        
-        // Create a workout block
-        let block = WorkoutBlock(title: "Main Set", orderIndex: 0)
-        
-        // Create exercises
-        let jumpingJacks = Exercise(
-            id: "jumping-jacks",
-            name: "Jumping Jacks",
-            instructions: "Jump with arms and legs spread",
-            videoURL: "https://pub-1750bfb161e049c787c9c9bffaad69ef.r2.dev/W1D1.mp4",
-            thumbnailURL: "",
-            muscleGroup: "Full Body"
-        )
-        
-        let burpees = Exercise(
-            id: "burpees",
-            name: "Burpees",
-            instructions: "Full body explosive movement",
-            videoURL: "https://pub-1750bfb161e049c787c9c9bffaad69ef.r2.dev/W1D1.mp4",
-            thumbnailURL: "",
-            muscleGroup: "Full Body"
-        )
-        
-        // Create workout steps
-        let step1 = WorkoutStep(orderIndex: 0, type: "work", durationSeconds: 45)
-        step1.exercise = jumpingJacks
-        
-        let rest1 = WorkoutStep(orderIndex: 1, type: "rest", durationSeconds: 15)
-        
-        let step2 = WorkoutStep(orderIndex: 2, type: "work", durationSeconds: 45)
-        step2.exercise = burpees
-        
-        let rest2 = WorkoutStep(orderIndex: 3, type: "rest", durationSeconds: 15)
-        
-        block.steps = [step1, rest1, step2, rest2]
-        workout.blocks = [block]
-        
-        return workout
-    }
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.white.ignoresSafeArea()
+                Color.ZP.background.ignoresSafeArea()
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        // Hero Card
-                        NavigationLink(destination: WorkoutDetailView(
-                            workout: heroWorkout,
-                            videoURL: URL(string: "https://pub-1750bfb161e049c787c9c9bffaad69ef.r2.dev/W1D1.mp4")
-                        )) {
-                            ZStack(alignment: .bottomLeading) {
-                                Rectangle()
-                                    .fill(Color.black)
-                                    .frame(height: 220)
-                                    .cornerRadius(24)
-                                
-                                VideoThumbnailView(videoURL: URL(string: "https://pub-1750bfb161e049c787c9c9bffaad69ef.r2.dev/W1D1.mp4")!)
-                                    .frame(height: 220)
-                                    .cornerRadius(24)
-                                    .opacity(0.7)
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("ZP's 20 Minute\nBurn Session")
-                                        .font(.ZP.title1)
-                                        .foregroundStyle(Color.white)
-                                    
-                                    HStack(spacing: 4) {
-                                        Text("Start Workout")
-                                            .font(.ZP.subheadline)
-                                            .foregroundStyle(Color.ZP.accent)
-                                        Image(systemName: "play.circle.fill")
-                                            .foregroundStyle(Color.ZP.accent)
-                                    }
-                                }
-                                .padding(24)
+                        // Header
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "arrow.left")
+                                    .font(.title2)
+                                    .foregroundStyle(Color.white)
                             }
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        // Best for you
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Best for you")
-                                .font(.ZP.title2)
-                                .foregroundStyle(Color.black)
+                            .padding(.bottom, 8)
                             
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                                BestForYouCard(title: "Ab Sequence", duration: "10 min", level: "Beginner", imageName: "figure.core.training")
-                                BestForYouCard(title: "HIIT Session", duration: "10 min", level: "Beginner", imageName: "figure.highintensity.intervaltraining")
-                                BestForYouCard(title: "Quick Sprint", duration: "5 min", level: "Expert", imageName: "figure.run")
-                                BestForYouCard(title: "Weights", duration: "30 min", level: "Intermediate", imageName: "dumbbell.fill")
-                            }
-                        }
-                        
-                        // Challenge
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Challenge")
-                                .font(.ZP.title2)
-                                .foregroundStyle(Color.black)
+                            Text("Programs")
+                                .font(.ZP.largeTitle)
+                                .foregroundStyle(Color.ZP.textPrimary)
                             
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ChallengeCard(title: "Abs", icon: "flame.fill", backgroundColor: Color.ZP.accent, textColor: Color.black)
-                                    ChallengeCard(title: "Sprint", icon: "figure.run", backgroundColor: Color.black, textColor: Color.white)
-                                    ChallengeCard(title: "Distance", icon: "waterbottle.fill", backgroundColor: Color.white, textColor: Color.black, hasBorder: true)
-                                }
-                            }
+                            Text("Choose your path. Build your discipline.")
+                                .font(.ZP.body)
+                                .foregroundStyle(Color.ZP.textSecondary)
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                        
+                        // Program Cards
+                        VStack(spacing: 24) {
+                            NavigationLink(destination: ProgramDetailView(program: Program(id: "jacklete", title: "Jacklete", subtitle: "Build muscle, strength, and explosive power", difficulty: "Advanced", durationWeeks: 9, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg"))) {
+                                PremiumProgramCard(
+                                    title: "Jacklete",
+                                    description: "Chris Bumstead's new approach to building muscle, strength, and explosive power.",
+                                    difficulty: "Advanced",
+                                    duration: "9 WEEKS",
+                                    phases: ["Phase 1", "Phase 2", "Phase 3"],
+                                    imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg",
+                                    accentColor: .purple
+                                )
+                            }
+                            .buttonStyle(ZPScaleButtonStyle())
+                            
+                            NavigationLink(destination: ProgramDetailView(program: Program(id: "stndrd6", title: "STNDRD6: SHIFT", subtitle: "6-week transformation program", difficulty: "Intermediate", durationWeeks: 6, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg"))) {
+                                PremiumProgramCard(
+                                    title: "STNDRD6: SHIFT",
+                                    description: "A 6-week transformation to build muscle, strength, and confidence through proven methods.",
+                                    difficulty: "Intermediate",
+                                    duration: "6 WEEKS",
+                                    phases: [],
+                                    imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg",
+                                    accentColor: .white
+                                )
+                            }
+                            .buttonStyle(ZPScaleButtonStyle())
+                            
+                            NavigationLink(destination: ProgramDetailView(program: Program(id: "hybrid", title: "Hybrid Athlete", subtitle: "Endurance and strength combined", difficulty: "Expert", durationWeeks: 12, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG"))) {
+                                PremiumProgramCard(
+                                    title: "Hybrid Athlete",
+                                    description: "Combine endurance and strength for the ultimate functional physique.",
+                                    difficulty: "Expert",
+                                    duration: "12 WEEKS",
+                                    phases: [],
+                                    imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG",
+                                    accentColor: .blue
+                                )
+                            }
+                            .buttonStyle(ZPScaleButtonStyle())
+                        }
+                        .padding(.horizontal, 20)
                     }
-                    .padding()
                     .padding(.bottom, 100)
                 }
             }
-            .navigationTitle("Explore")
-            .toolbar(.hidden, for: .navigationBar)
+            .navigationBarHidden(true)
         }
     }
 }
 
-struct BestForYouCard: View {
+struct PremiumProgramCard: View {
     let title: String
+    let description: String
+    let difficulty: String
     let duration: String
-    let level: String
-    let imageName: String
+    let phases: [String]
+    let imageURL: String
+    let accentColor: Color
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.ZP.headline)
-                    .foregroundStyle(Color.black)
-                    .lineLimit(1)
-                
-                Text(duration)
-                    .font(.ZP.caption)
-                    .foregroundStyle(Color.ZP.textSecondary)
-                
-                Text(level)
-                    .font(.ZP.caption)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.ZP.lightCard)
-                    .cornerRadius(4)
-                    .foregroundStyle(Color.ZP.textSecondary)
+        ZStack(alignment: .bottomLeading) {
+            // Background Image
+            AsyncImage(url: URL(string: imageURL)) { phase in
+                switch phase {
+                case .empty:
+                    Color.ZP.card.overlay(ProgressView())
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure:
+                    Color.ZP.card // Fallback
+                @unknown default:
+                    Color.ZP.card
+                }
             }
-            Spacer()
-            Image(systemName: imageName)
-                .font(.title2)
-                .foregroundStyle(Color.ZP.accent)
-        }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
-    }
-}
-
-struct ChallengeCard: View {
-    let title: String
-    let icon: String
-    let backgroundColor: Color
-    let textColor: Color
-    var hasBorder: Bool = false
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
-                .font(.ZP.headline)
-                .foregroundStyle(textColor)
+            .frame(height: 320)
+            .overlay(
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.6), .black.opacity(0.9)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .cornerRadius(32)
+            .clipped()
             
-            Spacer()
+            // Content
+            VStack(alignment: .leading, spacing: 12) {
+                // Top Badges (Absolute positioning relative to ZStack would be better, but VStack with Spacer works too if we change alignment)
+                
+                Spacer()
+                
+                // Title
+                Text(title)
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundStyle(Color.white)
+                
+                // Description
+                Text(description)
+                    .font(.ZP.body)
+                    .foregroundStyle(Color.white.opacity(0.8))
+                    .lineLimit(3)
+                    .padding(.bottom, 4)
+                
+                // Phases
+                if !phases.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(phases, id: \.self) { phase in
+                            Text(phase)
+                                .font(.system(size: 12, weight: .medium))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(8)
+                                .foregroundStyle(Color.white)
+                        }
+                    }
+                }
+            }
+            .padding(24)
             
-            Image(systemName: icon)
-                .font(.largeTitle)
-                .foregroundStyle(textColor.opacity(0.8))
+            // Top Badges
+            VStack {
+                HStack {
+                    // Difficulty Badge
+                    HStack(spacing: 6) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.caption)
+                        Text(difficulty)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(accentColor.opacity(0.2))
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(12)
+                    .foregroundStyle(accentColor)
+                    
+                    Spacer()
+                    
+                    // Duration Badge
+                    Text(duration)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(12)
+                        .foregroundStyle(Color.white)
+                }
+                Spacer()
+            }
+            .padding(20)
         }
-        .padding()
-        .frame(width: 110, height: 110)
-        .background(backgroundColor)
-        .cornerRadius(20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.gray.opacity(0.2), lineWidth: hasBorder ? 1 : 0)
-        )
+        .frame(height: 320)
+        .cornerRadius(32)
     }
 }

@@ -19,17 +19,29 @@ struct WorkoutDetailView: View {
                     // Header
                     HStack {
                         Button(action: { dismiss() }) {
-                            Image(systemName: "chevron.left")
+                            Image(systemName: "arrow.left")
+                                .font(.title3)
                                 .foregroundStyle(Color.white)
-                                .padding()
+                                .padding(12)
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(Circle())
                         }
                         Spacer()
-                        Text("Workout")
+                        Text("Workout Details")
                             .font(.ZP.headline)
-                            .foregroundStyle(Color.white)
+                            .foregroundStyle(Color.ZP.textPrimary)
                         Spacer()
-                        Color.clear.frame(width: 40, height: 40) // Balance
+                        Button(action: {}) {
+                            Image(systemName: "heart")
+                                .font(.title3)
+                                .foregroundStyle(Color.white)
+                                .padding(12)
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(Circle())
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
                     
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
@@ -37,103 +49,68 @@ struct WorkoutDetailView: View {
                             ZStack(alignment: .bottom) {
                                 if let videoURL = videoURL {
                                     VideoPlayerView(videoURL: videoURL)
-                                        .frame(height: 300)
+                                        .frame(height: 280)
                                         .cornerRadius(32)
                                 } else {
                                     Rectangle()
-                                        .fill(Color.ZP.cardHover)
-                                        .frame(height: 300)
+                                        .fill(Color.ZP.card)
+                                        .frame(height: 280)
                                         .cornerRadius(32)
                                         .overlay(
                                             Image(systemName: "figure.strengthtraining.traditional")
                                                 .resizable()
                                                 .aspectRatio(contentMode: .fit)
-                                                .frame(width: 200)
-                                                .opacity(0.5)
+                                                .frame(width: 100)
+                                                .opacity(0.3)
+                                                .foregroundStyle(Color.ZP.textSecondary)
                                         )
                                 }
-                                
-                                // Stats Overlay
-                                HStack(spacing: 16) {
-                                    HStack {
-                                        Image(systemName: "clock.fill")
-                                            .foregroundStyle(.black)
-                                            .padding(8)
-                                            .background(Color.ZP.accent)
-                                            .clipShape(Circle())
-                                        
-                                        VStack(alignment: .leading) {
-                                            Text("Time")
-                                                .font(.ZP.caption)
-                                                .foregroundStyle(Color.ZP.textSecondary)
-                                            Text("\(workout?.durationMinutes ?? 30) min")
-                                                .font(.ZP.subheadline)
-                                                .foregroundStyle(Color.ZP.textPrimary)
-                                        }
-                                    }
-                                    .padding()
-                                    .background(Color.ZP.card.opacity(0.8))
-                                    .cornerRadius(16)
-                                    
-                                    HStack {
-                                        Image(systemName: "flame.fill")
-                                            .foregroundStyle(.black)
-                                            .padding(8)
-                                            .background(Color.ZP.accent)
-                                            .clipShape(Circle())
-                                        
-                                        VStack(alignment: .leading) {
-                                            Text("Burn")
-                                                .font(.ZP.caption)
-                                                .foregroundStyle(Color.ZP.textSecondary)
-                                            Text("250 cal")
-                                                .font(.ZP.subheadline)
-                                                .foregroundStyle(Color.ZP.textPrimary)
-                                        }
-                                    }
-                                    .padding()
-                                    .background(Color.ZP.card.opacity(0.8))
-                                    .cornerRadius(16)
-                                }
-                                .offset(y: 30)
                             }
-                            .padding(.bottom, 30)
+                            .padding(.top, 20)
                             
                             // Title & Description
                             VStack(alignment: .leading, spacing: 12) {
                                 Text(workout?.title ?? "Lower Body Training")
-                                    .font(.ZP.title1)
+                                    .font(.ZP.largeTitle)
                                     .foregroundStyle(Color.ZP.textPrimary)
                                 
-                                Text("Lower body day, let's get that heart rate elevated and burn some calories. For today, you'll need space to run, a resistance band, and some kettle bells. Pace will be fast, but it'll be over quick!")
+                                HStack(spacing: 16) {
+                                    Label("\(workout?.durationMinutes ?? 30) min", systemImage: "clock.fill")
+                                    Label("Intermediate", systemImage: "chart.bar.fill")
+                                    Label("250 cal", systemImage: "flame.fill")
+                                }
+                                .font(.ZP.subheadline)
+                                .foregroundStyle(Color.ZP.textSecondary)
+                                
+                                Text("Lower body day, let's get that heart rate elevated and burn some calories. For today, you'll need space to run, a resistance band, and some kettle bells.")
                                     .font(.ZP.body)
                                     .foregroundStyle(Color.ZP.textSecondary)
                                     .lineLimit(4)
                             }
-                            .padding(.horizontal)
+                            .padding(.horizontal, 20)
                             
                             // Rounds
                             VStack(alignment: .leading, spacing: 16) {
                                 HStack {
-                                    Text("Rounds")
+                                    Text("Workout Plan")
                                         .font(.ZP.title2)
                                         .foregroundStyle(Color.ZP.textPrimary)
                                     Spacer()
-                                    Text("1/\(workout?.blocks.first?.steps.count ?? 8)")
+                                    Text("1/\(workout?.blocks.first?.steps.count ?? 8) Exercises")
                                         .font(.ZP.subheadline)
                                         .foregroundStyle(Color.ZP.textSecondary)
                                 }
-                                .padding(.horizontal)
+                                .padding(.horizontal, 20)
                                 
                                 VStack(spacing: 16) {
                                     RoundRow(title: "Jumping Jacks", duration: "00:30", imageName: "figure.jumping.jacks", isPlaying: true)
-                                    RoundRow(title: "Squats", duration: nil, imageName: "figure.strengthtraining.traditional", isPlaying: false)
-                                    RoundRow(title: "Backward Lunge", duration: nil, imageName: "figure.step.training", isPlaying: false)
+                                    RoundRow(title: "Squats", duration: "12 Reps", imageName: "figure.strengthtraining.traditional", isPlaying: false)
+                                    RoundRow(title: "Backward Lunge", duration: "10 Reps", imageName: "figure.step.training", isPlaying: false)
                                 }
-                                .padding(.horizontal)
+                                .padding(.horizontal, 20)
                             }
                         }
-                        .padding(.bottom, 100)
+                        .padding(.bottom, 120)
                     }
                 }
                 
@@ -142,30 +119,22 @@ struct WorkoutDetailView: View {
                     Spacer()
                     if let workout = workout {
                         NavigationLink(destination: WorkoutPlayerView(workout: workout)) {
-                            Text("Lets Workout")
-                                .font(.ZP.headline)
-                                .foregroundStyle(Color.black)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.ZP.accent)
-                                .cornerRadius(32)
+                            Text("Start Workout")
+                                .primaryButton()
                         }
-                        .padding()
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
                     } else {
                         Button(action: {}) {
-                            Text("Lets Workout")
-                                .font(.ZP.headline)
-                                .foregroundStyle(Color.black)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.ZP.accent)
-                                .cornerRadius(32)
+                            Text("Start Workout")
+                                .primaryButton()
                         }
-                        .padding()
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
                     }
                 }
             }
-            .toolbar(.hidden, for: .navigationBar)
+            .navigationBarHidden(true)
         }
     }
 }
@@ -178,19 +147,19 @@ struct RoundRow: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.ZP.cardHover)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isPlaying ? Color.ZP.primary.opacity(0.2) : Color.ZP.cardHover)
                 .frame(width: 60, height: 60)
                 .overlay(
                     Image(systemName: imageName)
                         .font(.title2)
-                        .foregroundStyle(Color.ZP.textSecondary)
+                        .foregroundStyle(isPlaying ? Color.ZP.primary : Color.ZP.textSecondary)
                 )
             
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.ZP.headline)
-                    .foregroundStyle(Color.ZP.textPrimary)
+                    .foregroundStyle(isPlaying ? Color.ZP.primary : Color.ZP.textPrimary)
                 if let duration = duration {
                     Text(duration)
                         .font(.ZP.subheadline)
@@ -200,12 +169,22 @@ struct RoundRow: View {
             
             Spacer()
             
-            Image(systemName: "play.circle.fill")
-                .font(.title)
-                .foregroundStyle(isPlaying ? Color.ZP.accent : Color.ZP.cardHover)
+            if isPlaying {
+                Image(systemName: "play.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(Color.ZP.primary)
+            } else {
+                Image(systemName: "lock.fill")
+                    .font(.body)
+                    .foregroundStyle(Color.ZP.textSecondary.opacity(0.5))
+            }
         }
-        .padding()
+        .padding(16)
         .background(Color.ZP.card)
-        .cornerRadius(16)
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(isPlaying ? Color.ZP.primary.opacity(0.5) : Color.clear, lineWidth: 1)
+        )
     }
 }

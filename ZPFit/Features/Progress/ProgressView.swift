@@ -22,7 +22,7 @@ struct ProgressView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.white.ignoresSafeArea()
+                Color.ZP.background.ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -30,10 +30,10 @@ struct ProgressView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Your Progress")
                                 .font(.ZP.largeTitle)
-                                .foregroundStyle(Color.black)
+                                .foregroundStyle(Color.ZP.textPrimary)
                             Text("Keep pushing your limits.")
                                 .font(.ZP.body)
-                                .foregroundStyle(Color.gray)
+                                .foregroundStyle(Color.ZP.textSecondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top)
@@ -42,7 +42,7 @@ struct ProgressView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Weekly Activity (Minutes)")
                                 .font(.ZP.headline)
-                                .foregroundStyle(Color.black)
+                                .foregroundStyle(Color.ZP.textPrimary)
                             
                             Chart {
                                 ForEach(weeklyVolume) { data in
@@ -50,7 +50,7 @@ struct ProgressView: View {
                                         x: .value("Day", data.day),
                                         y: .value("Minutes", data.minutes)
                                     )
-                                    .foregroundStyle(Color.ZP.accent)
+                                    .foregroundStyle(Color.ZP.primary)
                                     .cornerRadius(4)
                                 }
                             }
@@ -58,22 +58,22 @@ struct ProgressView: View {
                             .chartYAxis {
                                 AxisMarks(position: .leading, values: .automatic) { value in
                                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [5, 5]))
-                                        .foregroundStyle(Color.gray.opacity(0.3))
+                                        .foregroundStyle(Color.ZP.textSecondary.opacity(0.3))
                                     AxisValueLabel()
-                                        .foregroundStyle(Color.gray)
+                                        .foregroundStyle(Color.ZP.textSecondary)
                                 }
                             }
                             .chartXAxis {
                                 AxisMarks(values: .automatic) { value in
                                     AxisValueLabel()
-                                        .foregroundStyle(Color.gray)
+                                        .foregroundStyle(Color.ZP.textSecondary)
                                 }
                             }
                         }
                         .padding()
-                        .background(Color.white)
+                        .background(Color.ZP.card)
                         .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
+                        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
                         
                         // Stats Grid
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
@@ -100,15 +100,15 @@ struct StatBox: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.ZP.caption)
-                .foregroundStyle(Color.gray)
+                .foregroundStyle(Color.ZP.textSecondary)
             Text(value)
                 .font(.ZP.title2)
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Color.ZP.textPrimary)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(Color.ZP.card)
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
     }
 }

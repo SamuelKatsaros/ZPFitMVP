@@ -1,7 +1,11 @@
 import SwiftUI
+import SwiftData
 
 struct MainTabView: View {
     @State private var selectedTab: Tab = .home
+    @AppStorage("selectedPlan") private var selectedPlan: String?
+    @Environment(\.modelContext) private var modelContext
+    @Query private var programs: [Program]
     
     enum Tab: String, CaseIterable {
         case home = "Home"
@@ -27,7 +31,13 @@ struct MainTabView: View {
                 case .home:
                     HomeView()
                 case .programs:
-                    ProgramListView()
+                    if let planId = selectedPlan,
+                       let program = programs.first(where: { $0.id == planId }),
+                       let firstWorkout = program.workouts.first {
+                        WorkoutDetailView(workout: firstWorkout)
+                    } else {
+                        ProgramListView()
+                    }
                 case .calendar:
                     CalendarView()
                 case .profile:
@@ -44,45 +54,45 @@ struct MainTabView: View {
                             selectedTab = tab
                         }
                     }) {
-                        HStack(spacing: 8) {
+                        VStack(spacing: 4) {
                             Image(systemName: tab.icon)
-                                .font(.system(size: 20))
+                                .font(.system(size: 24))
+                                .symbolEffect(.bounce, value: selectedTab == tab)
                             
                             if selectedTab == tab {
-                                Text(tab.rawValue)
-                                    .font(.ZP.subheadline)
-                                    .fontWeight(.semibold)
-                                    .lineLimit(1)
+                                Circle()
+                                    .fill(Color.ZP.primary)
+                                    .frame(width: 4, height: 4)
+                                    .matchedGeometryEffect(id: "TabIndicator", in: namespace)
+                            } else {
+                                Circle()
+                                    .fill(Color.clear)
+                                    .frame(width: 4, height: 4)
                             }
                         }
+                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(selectedTab == tab ? Color.ZP.primary : Color.ZP.textSecondary)
                         .padding(.vertical, 12)
-                        .padding(.horizontal, selectedTab == tab ? 16 : 12)
-                        .background(
-                            ZStack {
-                                if selectedTab == tab {
-                                    Capsule()
-                                        .fill(Color.ZP.accent)
-                                        .matchedGeometryEffect(id: "TabBackground", in: namespace)
-                                }
-                            }
-                        )
-                        .foregroundStyle(selectedTab == tab ? Color.ZP.textBlack : Color.white)
-                    }
-                    .frame(maxWidth: selectedTab == tab ? .infinity : 60)
-                    
-                    if tab != Tab.allCases.last {
-                        Spacer(minLength: 4)
                     }
                 }
             }
-            .padding(.vertical, 16)
-            .padding(.horizontal, 8)
-            .background(Color.black)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+            .background(.ultraThinMaterial)
+            .background(Color.black.opacity(0.4))
             .cornerRadius(32)
-            .padding(.horizontal, 24) // Increased horizontal padding for floating look
-            .padding(.bottom, 0) // Reduced bottom padding to bring it lower
+            .overlay(
+                RoundedRectangle(cornerRadius: 32)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+            .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
         }
         .ignoresSafeArea(.keyboard)
+        .onAppear {
+            ProgramDataSeeder.seed(context: modelContext)
+        }
     }
     
     @Namespace private var namespace

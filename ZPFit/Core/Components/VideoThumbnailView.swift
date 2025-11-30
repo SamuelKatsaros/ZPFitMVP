@@ -14,19 +14,19 @@ struct VideoThumbnailView: View {
                     .aspectRatio(contentMode: .fill)
             } else if isLoading {
                 Rectangle()
-                    .fill(Color.black.opacity(0.3))
+                    .fill(Color.ZP.card)
                     .overlay(
                         ProgressView()
-                            .tint(.white)
+                            .tint(Color.ZP.primary)
                     )
             } else {
                 // Fallback if thumbnail generation fails
                 Rectangle()
-                    .fill(Color.black.opacity(0.5))
+                    .fill(Color.ZP.cardHover)
                     .overlay(
                         Image(systemName: "play.rectangle.fill")
                             .font(.largeTitle)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(Color.ZP.textSecondary)
                     )
             }
         }
@@ -38,7 +38,7 @@ struct VideoThumbnailView: View {
     
     private func generateThumbnail() {
         Task {
-            let asset = AVAsset(url: videoURL)
+            let asset = AVURLAsset(url: videoURL)
             let imageGenerator = AVAssetImageGenerator(asset: asset)
             imageGenerator.appliesPreferredTrackTransform = true
             
@@ -46,7 +46,7 @@ struct VideoThumbnailView: View {
             let time = CMTime(seconds: 1.0, preferredTimescale: 600)
             
             do {
-                let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
+                let (cgImage, _) = try await imageGenerator.image(at: time)
                 await MainActor.run {
                     self.thumbnail = UIImage(cgImage: cgImage)
                     self.isLoading = false

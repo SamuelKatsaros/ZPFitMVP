@@ -11,7 +11,7 @@ struct PaywallView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(Color.white.opacity(0.95))
+                .overlay(Color.black.opacity(0.85))
                 .ignoresSafeArea()
             
             VStack(spacing: 24) {
@@ -20,7 +20,7 @@ struct PaywallView: View {
                 Text("UNLOCK YOUR POTENTIAL")
                     .font(.ZP.display)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.black)
+                    .foregroundStyle(Color.ZP.textPrimary)
                 
                 VStack(alignment: .leading, spacing: 16) {
                     FeatureRow(text: "Unlimited Access to All Programs")
@@ -48,7 +48,7 @@ struct PaywallView: View {
                     Task { await subscriptionService.restore() }
                 }
                 .font(.ZP.caption)
-                .foregroundStyle(Color.gray)
+                .foregroundStyle(Color.ZP.textSecondary)
                 .padding(.bottom)
             }
         }
@@ -65,10 +65,10 @@ struct FeatureRow: View {
     var body: some View {
         HStack {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(Color.ZP.accent)
+                .foregroundStyle(Color.ZP.primary)
             Text(text)
                 .font(.ZP.body)
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Color.ZP.textPrimary)
         }
     }
 }
@@ -88,31 +88,31 @@ struct PricingCard: View {
                         .font(.caption2)
                         .fontWeight(.bold)
                         .padding(4)
-                        .background(Color.ZP.accent)
+                        .background(Color.ZP.primary)
                         .foregroundStyle(Color.ZP.textBlack)
                         .cornerRadius(4)
                 }
                 
                 Text(title)
                     .font(.ZP.headline)
-                    .foregroundStyle(Color.gray)
+                    .foregroundStyle(Color.ZP.textSecondary)
                 
                 Text(price)
                     .font(.ZP.title1)
-                    .foregroundStyle(Color.black)
+                    .foregroundStyle(Color.ZP.textPrimary)
                 
                 Text(period)
                     .font(.ZP.caption)
-                    .foregroundStyle(Color.gray)
+                    .foregroundStyle(Color.ZP.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(Color.white)
+            .background(Color.ZP.card)
             .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isBestValue ? Color.ZP.accent : Color.clear, lineWidth: 2)
+                    .stroke(isBestValue ? Color.ZP.primary : Color.clear, lineWidth: 2)
             )
         }
     }

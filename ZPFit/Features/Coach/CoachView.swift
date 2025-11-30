@@ -4,22 +4,22 @@ struct CoachView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.white.ignoresSafeArea()
+                Color.ZP.background.ignoresSafeArea()
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         // Hero Image
                         Rectangle()
-                            .fill(Color.ZP.lightCard)
+                            .fill(Color.ZP.card)
                             .frame(height: 350)
                             .overlay(
                                 ZStack {
                                     Image(systemName: "figure.strengthtraining.traditional")
                                         .font(.system(size: 100))
-                                        .foregroundStyle(Color.gray.opacity(0.3))
+                                        .foregroundStyle(Color.ZP.textSecondary.opacity(0.3))
                                     
                                     LinearGradient(
-                                        colors: [.clear, Color.white],
+                                        colors: [.clear, Color.ZP.background],
                                         startPoint: .top,
                                         endPoint: .bottom
                                     )
@@ -31,11 +31,11 @@ struct CoachView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Zach Powell")
                                     .font(.ZP.display)
-                                    .foregroundStyle(Color.black)
+                                    .foregroundStyle(Color.ZP.textPrimary)
                                 
                                 Text("Head Coach & Founder")
                                     .font(.ZP.title3)
-                                    .foregroundStyle(Color.ZP.accent)
+                                    .foregroundStyle(Color.ZP.primary)
                             }
                             
                             // Bio
@@ -66,10 +66,10 @@ struct CoachView: View {
                                 .font(.ZP.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.ZP.accent)
+                                .background(Color.ZP.primary)
                                 .foregroundStyle(Color.ZP.textBlack)
                                 .cornerRadius(16)
-                                .shadow(color: Color.ZP.accent.opacity(0.3), radius: 10, x: 0, y: 5)
+                                .shadow(color: Color.ZP.primary.opacity(0.3), radius: 10, x: 0, y: 5)
                             }
                         }
                         .padding()
@@ -90,7 +90,7 @@ struct PhilosophyRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(Color.ZP.accent)
+                .fill(Color.ZP.primary)
                 .frame(width: 6, height: 6)
             Text(text)
                 .font(.ZP.body)

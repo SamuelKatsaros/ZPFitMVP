@@ -4,21 +4,21 @@ extension Color {
     struct ZP {
         // Backgrounds
         static let background = Color(hex: "000000") // Pure Black
-        static let lightBackground = Color.white // White for Home/Explore/Analytics
-        static let card = Color(hex: "1C1C1E") // Dark Gray
-        static let cardHover = Color(hex: "2C2C2E")
-        static let lightCard = Color(hex: "F2F2F7") // Light Gray for light mode cards
+        static let card = Color(hex: "121212") // Deep Off-Black for cards
+        static let cardHover = Color(hex: "1C1C1E") // Slightly lighter for interaction
+        static let cardBorder = Color.white.opacity(0.1) // Subtle border for glassmorphism feel
         
         // Accents
-        static let primary = Color(hex: "D0FD3E") // Neon Lime
-        static let accent = Color(hex: "D0FD3E") // Neon Lime
+        static let primary = Color(hex: "D0FD3E") // High-Voltage Neon Lime
+        static let primaryDim = Color(hex: "A6CC31") // Dimmer version for gradients/pressed states
+        static let accent = Color(hex: "D0FD3E") // Alias for primary
         static let secondaryAccent = Color(hex: "2C2C2E") // Dark Gray for secondary buttons
         static let error = Color(hex: "FF453A")
+        static let success = Color(hex: "30D158")
         
         // Text
         static let textPrimary = Color.white
-        static let textOnLight = Color.black // For text on White background
-        static let textSecondary = Color(hex: "8E8E93")
+        static let textSecondary = Color(hex: "8E8E93") // Standard iOS Gray
         static let textTertiary = Color(hex: "48484A")
         static let textBlack = Color.black // For text on Neon Lime
     }

@@ -10,14 +10,14 @@ struct OnboardingView: View {
     
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color.ZP.background.ignoresSafeArea()
             
             VStack {
                 // Progress Indicator
                 HStack(spacing: 4) {
                     ForEach(0..<4) { index in
                         Capsule()
-                            .fill(index <= viewModel.currentStep ? Color.ZP.accent : Color.ZP.lightCard)
+                            .fill(index <= viewModel.currentStep ? Color.ZP.primary : Color.ZP.card)
                             .frame(height: 4)
                             .frame(maxWidth: .infinity)
                     }
@@ -66,18 +66,18 @@ struct WelcomeStep: View {
         VStack(spacing: 20) {
             Image(systemName: "figure.run")
                 .font(.system(size: 80))
-                .foregroundStyle(Color.ZP.accent)
+                .foregroundStyle(Color.ZP.primary)
                 .padding(.bottom, 20)
             
             Text("Welcome to ZP Fit")
                 .font(.ZP.display)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Color.ZP.textPrimary)
             
             Text("Your personal path to peak performance with Zach Powell.")
                 .font(.ZP.body)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Color.gray)
+                .foregroundStyle(Color.ZP.textSecondary)
                 .padding(.horizontal, 40)
             
             Spacer().frame(height: 40)
@@ -87,9 +87,9 @@ struct WelcomeStep: View {
                     .font(.ZP.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.ZP.accent)
+                    .background(Color.ZP.primary)
                     .foregroundStyle(Color.ZP.textBlack)
-                    .shadow(color: Color.ZP.accent.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .shadow(color: Color.ZP.primary.opacity(0.3), radius: 10, x: 0, y: 5)
                     .cornerRadius(12)
             }
             .padding(.horizontal, 40)
@@ -105,14 +105,14 @@ struct NameStep: View {
         VStack(spacing: 20) {
             Text("What's your name?")
                 .font(.ZP.title1)
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Color.ZP.textPrimary)
             
             TextField("Your Name", text: $name)
                 .font(.ZP.title2)
                 .padding()
-                .background(Color.ZP.lightCard)
+                .background(Color.ZP.card)
                 .cornerRadius(12)
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Color.ZP.textPrimary)
                 .padding(.horizontal, 40)
             
             Button(action: action) {
@@ -120,8 +120,8 @@ struct NameStep: View {
                     .font(.ZP.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(name.isEmpty ? Color.ZP.lightCard : Color.ZP.accent)
-                    .foregroundStyle(name.isEmpty ? Color.gray : Color.ZP.textBlack)
+                    .background(name.isEmpty ? Color.ZP.cardHover : Color.ZP.primary)
+                    .foregroundStyle(name.isEmpty ? Color.ZP.textSecondary : Color.ZP.textBlack)
                     .cornerRadius(12)
             }
             .disabled(name.isEmpty)
@@ -140,26 +140,26 @@ struct SelectionStep: View {
         VStack(spacing: 20) {
             Text(title)
                 .font(.ZP.title1)
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Color.ZP.textPrimary)
             
             ForEach(options, id: \.self) { option in
                 Button(action: { selection = option }) {
                     HStack {
                         Text(option)
                             .font(.ZP.body)
-                            .foregroundStyle(Color.black)
+                            .foregroundStyle(Color.ZP.textPrimary)
                         Spacer()
                         if selection == option {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(Color.ZP.accent)
+                                .foregroundStyle(Color.ZP.primary)
                         }
                     }
                     .padding()
-                    .background(selection == option ? Color.white : Color.ZP.lightCard)
+                    .background(selection == option ? Color.ZP.cardHover : Color.ZP.card)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(selection == option ? Color.ZP.accent : Color.clear, lineWidth: 1)
+                            .stroke(selection == option ? Color.ZP.primary : Color.clear, lineWidth: 1)
                     )
                 }
                 .padding(.horizontal, 40)
@@ -172,9 +172,9 @@ struct SelectionStep: View {
                     .font(.ZP.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.ZP.accent)
+                    .background(Color.ZP.primary)
                     .foregroundStyle(Color.ZP.textBlack)
-                    .shadow(color: Color.ZP.accent.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .shadow(color: Color.ZP.primary.opacity(0.3), radius: 10, x: 0, y: 5)
                     .cornerRadius(12)
             }
             .padding(.horizontal, 40)

@@ -5,6 +5,7 @@ struct ProgramDetailView: View {
     let program: Program
     @Environment(\.diContainer) private var diContainer
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("selectedPlan") private var selectedPlan: String?
     
     // We need to access UserProfile to enroll
     @Query private var userProfiles: [UserProfile]
@@ -13,40 +14,52 @@ struct ProgramDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 // Hero Image
-                Rectangle()
-                    .fill(Color.ZP.lightCard)
-                    .frame(height: 300)
-                    .overlay(
-                        ZStack {
-                            Image(systemName: "figure.cross.training")
-                                .font(.system(size: 80))
-                                .foregroundStyle(Color.gray.opacity(0.3))
-                            
-                            LinearGradient(
-                                colors: [.clear, Color.white],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
+                ZStack(alignment: .bottom) {
+                    AsyncImage(url: URL(string: program.coverImage)) { phase in
+                        switch phase {
+                        case .empty:
+                            Color.ZP.card.overlay(ProgressView())
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .failure:
+                            Color.ZP.card
+                                .overlay(
+                                    Image(systemName: "figure.cross.training")
+                                        .font(.system(size: 80))
+                                        .foregroundStyle(Color.ZP.textSecondary.opacity(0.3))
+                                )
+                        @unknown default:
+                            Color.ZP.card
                         }
+                    }
+                    .frame(height: 350)
+                    .clipped()
+                    
+                    LinearGradient(
+                        colors: [.clear, Color.ZP.background.opacity(0.8), Color.ZP.background],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
+                    .frame(height: 150)
+                }
                 
                 VStack(alignment: .leading, spacing: 24) {
                     // Title & Info
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
                         Text(program.title)
                             .font(.ZP.display)
-                            .foregroundStyle(Color.black)
+                            .foregroundStyle(Color.ZP.textPrimary)
                         
                         Text(program.subtitle)
                             .font(.ZP.title3)
-                            .foregroundStyle(Color.gray)
+                            .foregroundStyle(Color.ZP.textSecondary)
                         
-                        HStack(spacing: 16) {
-                            Label("\(program.durationWeeks) Weeks", systemImage: "calendar")
-                            Label(program.difficulty, systemImage: "chart.bar.fill")
+                        HStack(spacing: 12) {
+                            Badge(text: "\(program.durationWeeks) WEEKS", icon: "calendar", color: .blue)
+                            Badge(text: program.difficulty.uppercased(), icon: "chart.bar.fill", color: .orange)
                         }
-                        .font(.ZP.subheadline)
-                        .foregroundStyle(Color.ZP.accent)
                     }
                     
                     // Enroll Button
@@ -55,46 +68,100 @@ struct ProgramDetailView: View {
                             .font(.ZP.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.ZP.accent)
+                            .background(Color.ZP.primary)
                             .foregroundStyle(Color.ZP.textBlack)
                             .cornerRadius(16)
-                            .shadow(color: Color.ZP.accent.opacity(0.3), radius: 10, x: 0, y: 5)
+                            .shadow(color: Color.ZP.primary.opacity(0.3), radius: 10, x: 0, y: 5)
                     }
                     
-                    // Workouts List (Grouped by week - simplified for now)
+                    // Description
+                    Text("This program is designed to push your limits. Follow the schedule strictly for best results. Ensure you have access to a gym with basic equipment.")
+                        .font(.ZP.body)
+                        .foregroundStyle(Color.ZP.textSecondary)
+                        .lineLimit(4)
+                    
+                    // Workouts List
                     Text("Schedule")
                         .font(.ZP.title2)
-                        .foregroundStyle(Color.black)
+                        .foregroundStyle(Color.ZP.textPrimary)
+                        .padding(.top, 8)
                     
-                    ForEach(program.workouts) { workout in
-                        Button(action: { selectedWorkout = workout }) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(workout.title)
-                                        .font(.ZP.headline)
-                                        .foregroundStyle(Color.black)
-                                    Text("\(workout.durationMinutes) min • \(workout.type)")
-                                        .font(.ZP.subheadline)
-                                        .foregroundStyle(Color.gray)
+                    VStack(spacing: 16) {
+                        ForEach(program.workouts) { workout in
+                            Button(action: { selectedWorkout = workout }) {
+                                HStack(spacing: 16) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.ZP.cardHover)
+                                            .frame(width: 48, height: 48)
+                                        
+                                        if workout.type == "Rest" {
+                                            Image(systemName: "moon.fill")
+                                                .foregroundStyle(Color.purple)
+                                        } else {
+                                            Text(String(workout.title.prefix(1)))
+                                                .font(.headline)
+                                                .foregroundStyle(Color.ZP.primary)
+                                        }
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(workout.title)
+                                            .font(.ZP.headline)
+                                            .foregroundStyle(Color.ZP.textPrimary)
+                                            .multilineTextAlignment(.leading)
+                                        
+                                        HStack {
+                                            Text(workout.type)
+                                                .font(.ZP.caption)
+                                                .foregroundStyle(Color.ZP.textSecondary)
+                                            
+                                            if workout.durationMinutes > 0 {
+                                                Text("•")
+                                                    .foregroundStyle(Color.ZP.textTertiary)
+                                                Text("\(workout.durationMinutes) min")
+                                                    .font(.ZP.caption)
+                                                    .foregroundStyle(Color.ZP.textSecondary)
+                                            }
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.ZP.textTertiary)
                                 }
-                                Spacer()
-                                Image(systemName: "play.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(Color.ZP.accent)
+                                .padding(16)
+                                .background(Color.ZP.card)
+                                .cornerRadius(16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                                )
                             }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
                         }
                     }
                 }
-                .padding()
+                .padding(20)
+                .offset(y: -40) // Overlap with image
             }
         }
-        .background(Color.white)
+        .background(Color.ZP.background)
         .ignoresSafeArea(edges: .top)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "arrow.left")
+                        .font(.headline)
+                        .foregroundStyle(Color.white)
+                        .padding(8)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                }
+            }
+        }
         .fullScreenCover(item: $selectedWorkout) { workout in
             WorkoutPlayerView(workout: workout)
         }
@@ -105,12 +172,34 @@ struct ProgramDetailView: View {
     private func enrollInProgram() {
         guard let user = userProfiles.first else { return }
         user.activeProgram = program
-        // In a real app, we'd save context here via a service or direct context access
-        // For now, assuming autosave or service handling
-        // We can use the service if we want to be clean
-        // diContainer.userProfileService.setActiveProgram(program)
-        // But direct assignment works with SwiftData if context is saved.
+        selectedPlan = program.id // Update AppStorage
+        
         try? diContainer.persistenceService.container.mainContext.save()
         dismiss()
+    }
+}
+
+struct Badge: View {
+    let text: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption)
+            Text(text)
+                .font(.caption)
+                .fontWeight(.bold)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.2))
+        .cornerRadius(8)
+        .foregroundStyle(color)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(color.opacity(0.3), lineWidth: 1)
+        )
     }
 }
