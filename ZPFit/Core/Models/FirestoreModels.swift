@@ -181,7 +181,6 @@ struct FirestoreUserProfile: Codable {
     }
 }
 
-// MARK: - Firestore Trainer
 struct FirestoreTrainer: Codable, Identifiable {
     @DocumentID var id: String?
     var name: String
@@ -199,3 +198,25 @@ struct FirestoreTrainer: Codable, Identifiable {
         )
     }
 }
+
+// MARK: - Firestore Session
+struct FirestoreSession: Codable, Identifiable {
+    @DocumentID var id: String?
+    var title: String
+    var duration: Int  // in minutes
+    var videoUrl: String
+    var thumbnailUrl: String
+    var createdAt: String?
+    var order: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case duration
+        case videoUrl
+        case thumbnailUrl
+        case createdAt
+        case order
+    }
+}
+

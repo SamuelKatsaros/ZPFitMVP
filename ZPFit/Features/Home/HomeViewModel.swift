@@ -9,6 +9,7 @@ class HomeViewModel: ObservableObject {
     @Published var currentDay: FirestoreProgramDay?
     @Published var todayExercises: [FirestoreExercise] = []
     @Published var userProgress: [String: FirestoreUserProgress] = [:]
+    @Published var sessions: [FirestoreSession] = []
     
     private let modelContainer: ModelContainer
     private let firestoreService: FirestoreService
@@ -38,6 +39,10 @@ class HomeViewModel: ObservableObject {
         // Subscribe to user progress
         firestoreService.$userProgress
             .assign(to: &$userProgress)
+        
+        // Subscribe to sessions
+        firestoreService.$sessions
+            .assign(to: &$sessions)
     }
     
     // Note: fetchData() removed - data is now loaded once in AuthenticationService

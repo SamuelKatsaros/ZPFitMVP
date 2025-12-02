@@ -89,6 +89,12 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if false;
     }
+    
+    // Sessions (Quick Workouts) - read-only for authenticated users
+    match /sessions/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only admins via admin portal
+    }
   }
 }
 ```

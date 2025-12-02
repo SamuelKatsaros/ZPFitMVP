@@ -30,7 +30,7 @@ struct HomeView: View {
                         HeroSection(viewModel: viewModel, showPlanSelection: $showPlanSelection, selectedTab: $selectedTab)
                         
                         // Featured Workouts (Now before Stats)
-                        FeaturedWorkoutsSection()
+                        FeaturedWorkoutsSection(viewModel: viewModel)
                         
                         // Stats Row
                         StatsRow()
@@ -413,47 +413,138 @@ struct HomeStatBox: View {
 }
 
 struct FeaturedWorkoutsSection: View {
+    @ObservedObject var viewModel: HomeViewModel
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            NavigationLink(destination: ProgramListView()) {
-                HStack {
-                    Text("Workouts")
-                        .font(.ZP.title2)
-                        .foregroundStyle(Color.ZP.textPrimary)
-                    Spacer()
-                    Text("Schedule")
-                        .font(.ZP.subheadline)
-                        .foregroundStyle(Color.ZP.textSecondary)
-                    Image(systemName: "chevron.right")
-                        .font(.ZP.caption)
-                        .foregroundStyle(Color.ZP.textSecondary)
-                }
-                .padding(.horizontal, 20)
-            }
-            
-            // Empty Schedule Card
-            HStack(spacing: 16) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 24))
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                Text("Sessions")
+                    .font(.ZP.title2)
+                    .foregroundStyle(Color.ZP.textPrimary)
+                Spacer()
+                Text("See all")
+                    .font(.ZP.subheadline)
                     .foregroundStyle(Color.ZP.textSecondary)
-                    .frame(width: 50, height: 50)
-                    .background(Color.ZP.cardHover)
-                    .cornerRadius(12)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Nothing on the schedule")
-                        .font(.ZP.headline)
-                        .foregroundStyle(Color.ZP.textPrimary)
-                    Text("No workout yet — let's get moving!")
-                        .font(.ZP.subheadline)
+                Image(systemName: "chevron.right")
+                    .font(.ZP.caption)
+                    .foregroundStyle(Color.ZP.textSecondary)
+            }
+            .padding(.horizontal, 20)
+            
+            // Horizontal Scroll
+            if viewModel.sessions.isEmpty {
+                // Empty state
+                HStack(spacing: 16) {
+                    Image(systemName: "video")
+                        .font(.system(size: 24))
                         .foregroundStyle(Color.ZP.textSecondary)
+                        .frame(width: 50, height: 50)
+                        .background(Color.ZP.cardHover)
+                        .cornerRadius(12)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("No sessions yet")
+                            .font(.ZP.headline)
+                            .foregroundStyle(Color.ZP.textPrimary)
+                        Text("Check back soon for quick workout sessions!")
+                            .font(.ZP.subheadline)
+                            .foregroundStyle(Color.ZP.textSecondary)
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.ZP.card)
+                .cornerRadius(20)
+                .padding(.horizontal, 20)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(viewModel.sessions) { session in
+                            SessionCard(session: session)
+                        }
+                    }
+                    .padding(.horizontal, 20)
                 }
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.ZP.card)
-            .cornerRadius(20)
-            .padding(.horizontal, 20)
         }
+    }
+}
+
+// MARK: - Session Card Component
+
+struct SessionCard: View {
+    let session: FirestoreSession
+    
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            // Background Image
+            AsyncImage(url: URL(string: session.thumbnailUrl)) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure(_):
+                    Color.ZP.cardHover
+                        .overlay(
+                            Image(systemName: "video.slash")
+                                .foregroundStyle(Color.ZP.textSecondary)
+                        )
+                case .empty:
+                    Color.ZP.cardHover
+                @unknown default:
+                    Color.ZP.cardHover
+                }
+            }
+            .frame(width: 140, height: 220)
+            .clipped()
+            
+            // Gradient Overlay
+            LinearGradient(
+                colors: [.black.opacity(0), .black.opacity(0.8)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    // Play Button / Type Indicator
+                    Image(systemName: "play.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                    
+                    Spacer()
+                }
+                
+                Spacer()
+                
+                Text(session.title)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.caption2)
+                    Text("\(session.duration) min")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(.white.opacity(0.9))
+            }
+            .padding(12)
+        }
+        .frame(width: 140, height: 220)
+        .background(Color.ZP.card)
+        .cornerRadius(20)
+        // Add a subtle shadow to the card itself
+        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
     }
 }

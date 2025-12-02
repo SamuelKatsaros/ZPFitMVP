@@ -31,10 +31,16 @@ class AuthenticationService: ObservableObject {
                 self?.currentUser = user
                 self?.isAuthenticated = user != nil
                 
+                print("🔐 Auth state changed. User: \(user?.uid ?? "nil")")
+                
                 // Load user data when authenticated
                 if let userId = user?.uid {
                     await self?.firestoreService.loadUserData(userId: userId)
                 }
+                
+                // Load sessions for Quick Workouts section (available to all users)
+                print("📱 Calling loadSessions() from AuthService")
+                self?.firestoreService.loadSessions()
             }
         }
     }

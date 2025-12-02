@@ -11,10 +11,12 @@ class FirestoreService: ObservableObject {
     @Published var currentUserProfile: FirestoreUserProfile?
     @Published var currentProgramDays: [FirestoreProgramDay] = []
     @Published var userProgress: [String: FirestoreUserProgress] = [:] // dayId -> progress
+    @Published var sessions: [FirestoreSession] = []
     
     private var programsListener: ListenerRegistration?
     private var daysListener: ListenerRegistration?
     private var progressListener: ListenerRegistration?
+    private var sessionsListener: ListenerRegistration?
     
     init() {
         configureFirestore()
@@ -24,6 +26,7 @@ class FirestoreService: ObservableObject {
         programsListener?.remove()
         daysListener?.remove()
         progressListener?.remove()
+        sessionsListener?.remove()
     }
     
     // MARK: - Configuration
@@ -393,6 +396,48 @@ class FirestoreService: ObservableObject {
         return try? document.data(as: FirestoreUserProgress.self)
     }
     
+    // MARK: - Sessions
+    
+    /// Load sessions (Quick Workouts/Reels) with real-time updates
+    func loadSessions() {
+        print("🔥 FirestoreService: loadSessions() called")
+        sessionsListener?.remove()
+        
+        sessionsListener = db.collection("sessions")
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("❌ Error loading sessions: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    print("⚠️ No snapshot documents for sessions")
+                    return
+                }
+                
+                print("📦 Found \(documents.count) documents in sessions collection")
+                
+                Task { @MainActor in
+                    let sessions = documents.compactMap { doc -> FirestoreSession? in
+                        do {
+                            let session = try doc.data(as: FirestoreSession.self)
+                            print("✅ Loaded session: \(session.title) (ID: \(session.id ?? "no-id"))")
+                            return session
+                        } catch {
+                            print("❌ Failed to decode session from doc \(doc.documentID): \(error)")
+                            return nil
+                        }
+                    }
+                    
+                    self.sessions = sessions
+                    print("🎯 Total sessions loaded: \(self.sessions.count)")
+                }
+            }
+    }
+    
     // MARK: - Helper Methods
     
     /// Remove all listeners
@@ -400,6 +445,7 @@ class FirestoreService: ObservableObject {
         programsListener?.remove()
         daysListener?.remove()
         progressListener?.remove()
+        sessionsListener?.remove()
     }
 }
 
