@@ -32,8 +32,7 @@ struct HomeView: View {
                         // Featured Workouts (Now before Stats)
                         FeaturedWorkoutsSection(viewModel: viewModel)
                         
-                        // Stats Row
-                        StatsRow()
+
                     }
                     .padding(.top, 10)
                     .padding(.bottom, 100)
@@ -326,91 +325,7 @@ struct WeekAtAGlance: View {
     }
 }
 
-struct StatsRow: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            NavigationLink(destination: CalendarView()) {
-                HStack {
-                    Text("Stats")
-                        .font(.ZP.title2)
-                        .foregroundStyle(Color.ZP.textPrimary)
-                    Spacer()
-                    Text("See all")
-                        .font(.ZP.subheadline)
-                        .foregroundStyle(Color.ZP.textSecondary)
-                    Image(systemName: "chevron.right")
-                        .font(.ZP.caption)
-                        .foregroundStyle(Color.ZP.textSecondary)
-                }
-                .padding(.horizontal, 20)
-            }
-            
-            // Weight Card
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("-- lbs")
-                        .font(.ZP.title2)
-                        .foregroundStyle(Color.ZP.textPrimary)
-                    Text("No information yet")
-                        .font(.ZP.subheadline)
-                        .foregroundStyle(Color.ZP.textSecondary)
-                }
-                Spacer()
-                HStack {
-                    Text("Weigh in")
-                        .font(.ZP.subheadline)
-                        .foregroundStyle(Color.ZP.textPrimary)
-                    Image(systemName: "arrow.right")
-                        .font(.ZP.caption)
-                        .foregroundStyle(Color.ZP.textPrimary)
-                }
-            }
-            .padding(20)
-            .background(Color.ZP.card)
-            .cornerRadius(20)
-            .padding(.horizontal, 20)
-            
-            // Calories & Steps
-            HStack(spacing: 16) {
-                HomeStatBox(icon: "flame.fill", title: "Calories", value: "0 / 2135", color: .purple)
-                HomeStatBox(icon: "shoe.fill", title: "Steps", value: "0 / 0", color: .orange)
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-}
 
-struct HomeStatBox: View {
-    let icon: String
-    let title: String
-    let value: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Circle()
-                .stroke(color.opacity(0.3), lineWidth: 4)
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Image(systemName: icon)
-                        .foregroundStyle(color)
-                )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.ZP.subheadline)
-                    .foregroundStyle(Color.ZP.textPrimary)
-                Text(value)
-                    .font(.ZP.headline)
-                    .foregroundStyle(Color.ZP.textSecondary)
-            }
-            Spacer()
-        }
-        .padding(16)
-        .background(Color.ZP.card)
-        .cornerRadius(20)
-    }
-}
 
 struct FeaturedWorkoutsSection: View {
     @ObservedObject var viewModel: HomeViewModel
