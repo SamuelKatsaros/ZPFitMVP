@@ -4,31 +4,66 @@ import Combine
 
 @MainActor
 class HomeViewModel: ObservableObject {
-    @Published var userName: String = "Athlete"
-    @Published var activeProgram: Program?
-    @Published var featuredPrograms: [Program] = []
+    @Published var workouts: [Workout] = []
+    @Published var selectedProgram: FirestoreProgram?
+    @Published var currentDay: FirestoreProgramDay?
+    @Published var todayExercises: [FirestoreExercise] = []
+    @Published var userProgress: [String: FirestoreUserProgress] = [:]
     
     private let modelContainer: ModelContainer
-    private let context: ModelContext
+    private let firestoreService: FirestoreService
+    private let authService: AuthenticationService
+    private var cancellables = Set<AnyCancellable>()
     
-    init(modelContainer: ModelContainer) {
+    init(modelContainer: ModelContainer, firestoreService: FirestoreService, authService: AuthenticationService) {
         self.modelContainer = modelContainer
-        self.context = modelContainer.mainContext
-        fetchData()
+        self.firestoreService = firestoreService
+        self.authService = authService
+        
+        setupSubscriptions()
     }
     
-    func fetchData() {
-        // Fetch User
-        let userDescriptor = FetchDescriptor<UserProfile>()
-        if let user = try? context.fetch(userDescriptor).first {
-            self.userName = user.name
-            self.activeProgram = user.activeProgram
+    private func setupSubscriptions() {
+        // Subscribe to current program from FirestoreService
+        firestoreService.$currentProgram
+            .assign(to: &$selectedProgram)
+        
+        // Subscribe to current program days
+        firestoreService.$currentProgramDays
+            .sink { [weak self] days in
+                self?.currentDay = days.first
+            }
+            .store(in: &cancellables)
+        
+        // Subscribe to user progress
+        firestoreService.$userProgress
+            .assign(to: &$userProgress)
+    }
+    
+    // Note: fetchData() removed - data is now loaded once in AuthenticationService
+    // and updates automatically via subscriptions above
+
+    
+    func loadTodayExercises() async {
+        guard let day = currentDay else { return }
+        
+        // Convert embedded exercises to FirestoreExercise objects
+        let exercises = day.exercises.enumerated().map { index, embedded -> FirestoreExercise in
+            FirestoreExercise(
+                id: "\(day.id ?? "day")_\(index)",
+                name: embedded.name,
+                instructions: nil,
+                videoUrl: embedded.videoUrl,
+                thumbnailUrl: embedded.thumbnailUrl,
+                muscleGroup: nil,
+                durationSeconds: nil,
+                reps: embedded.reps,
+                sets: embedded.sets
+            )
         }
         
-        // Fetch Programs (Mock "Featured" logic: just take the first 3)
-        let programDescriptor = FetchDescriptor<Program>()
-        if let programs = try? context.fetch(programDescriptor) {
-            self.featuredPrograms = Array(programs.prefix(3))
+        await MainActor.run {
+            todayExercises = exercises
         }
     }
 }

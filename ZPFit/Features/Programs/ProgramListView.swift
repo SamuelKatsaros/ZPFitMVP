@@ -2,19 +2,42 @@ import SwiftUI
 import SwiftData
 
 struct ProgramListView: View {
-    @State private var showWorkout = false
+    @StateObject private var viewModel: ProgramListViewModel
     @Environment(\.dismiss) private var dismiss
     
-    @AppStorage("selectedPlan") private var selectedPlan: String?
+    init() {
+        _viewModel = StateObject(wrappedValue: ProgramListViewModel(
+            firestoreService: DIContainer.shared.firestoreService,
+            authService: DIContainer.shared.authenticationService
+        ))
+    }
     
     var body: some View {
-        if selectedPlan != nil {
-            TodaysWorkoutView()
-        } else {
-            NavigationStack {
-                ZStack {
-                    Color.ZP.background.ignoresSafeArea()
-                    
+        NavigationStack {
+            ZStack {
+                Color.ZP.background.ignoresSafeArea()
+                
+                if viewModel.isLoading {
+                    ProgressView()
+                        .tint(Color.white)
+                } else if viewModel.programs.isEmpty {
+                    // Empty state
+                    VStack(spacing: 20) {
+                        Image(systemName: "figure.run")
+                            .font(.system(size: 60))
+                            .foregroundStyle(Color.ZP.textSecondary)
+                        
+                        Text("No Programs Available")
+                            .font(.ZP.title2)
+                            .foregroundStyle(Color.ZP.textPrimary)
+                        
+                        Text("Programs will appear here once added to Firestore")
+                            .font(.ZP.body)
+                            .foregroundStyle(Color.ZP.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+                } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
                             // Header
@@ -30,53 +53,42 @@ struct ProgramListView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 20)
                             
-                            // Program Cards
+                            // Load from Firestore
                             VStack(spacing: 24) {
-                                NavigationLink(destination: ProgramDetailView(program: Program(id: "jacklete", title: "Jacklete", subtitle: "Build muscle, strength, and explosive power", difficulty: "Advanced", durationWeeks: 9, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg"))) {
-                                    PremiumProgramCard(
-                                        title: "Jacklete",
-                                        description: "Chris Bumstead's new approach to building muscle, strength, and explosive power.",
-                                        difficulty: "Advanced",
-                                        duration: "9 WEEKS",
-                                        phases: ["Phase 1", "Phase 2", "Phase 3"],
-                                        imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg",
-                                        accentColor: .purple
-                                    )
+                                ForEach(viewModel.programs) { program in
+                                    Button(action: {
+                                        Task {
+                                            await viewModel.selectProgram(program)
+                                            // Wait for Firestore to update (increased delay)
+                                            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                                            // Dismiss the sheet
+                                            dismiss()
+                                            // Post notification to refresh HomeView
+                                            NotificationCenter.default.post(name: NSNotification.Name("ProgramSelected"), object: nil)
+                                        }
+                                    }) {
+                                        PremiumProgramCard(
+                                            title: program.title,
+                                            description: program.subtitle,
+                                            difficulty: program.difficulty ?? "Intermediate",
+                                            duration: "\(program.durationWeeks) WEEKS",
+                                            phases: [],
+                                            imageURL: program.coverImage,
+                                            accentColor: .purple
+                                        )
+                                    }
+                                    .buttonStyle(ZPScaleButtonStyle())
                                 }
-                                .buttonStyle(ZPScaleButtonStyle())
-                                
-                                NavigationLink(destination: ProgramDetailView(program: Program(id: "stndrd6", title: "STNDRD6: SHIFT", subtitle: "6-week transformation program", difficulty: "Intermediate", durationWeeks: 6, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg"))) {
-                                    PremiumProgramCard(
-                                        title: "STNDRD6: SHIFT",
-                                        description: "A 6-week transformation to build muscle, strength, and confidence through proven methods.",
-                                        difficulty: "Intermediate",
-                                        duration: "6 WEEKS",
-                                        phases: [],
-                                        imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg",
-                                        accentColor: .white
-                                    )
-                                }
-                                .buttonStyle(ZPScaleButtonStyle())
-                                
-                                NavigationLink(destination: ProgramDetailView(program: Program(id: "hybrid", title: "Hybrid Athlete", subtitle: "Endurance and strength combined", difficulty: "Expert", durationWeeks: 12, coverImage: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG"))) {
-                                    PremiumProgramCard(
-                                        title: "Hybrid Athlete",
-                                        description: "Combine endurance and strength for the ultimate functional physique.",
-                                        difficulty: "Expert",
-                                        duration: "12 WEEKS",
-                                        phases: [],
-                                        imageURL: "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG",
-                                        accentColor: .blue
-                                    )
-                                }
-                                .buttonStyle(ZPScaleButtonStyle())
                             }
                             .padding(.horizontal, 20)
                         }
                         .padding(.bottom, 100)
                     }
                 }
-                .navigationBarHidden(true)
+            }
+            .navigationBarHidden(true)
+            .onAppear {
+                viewModel.loadPrograms()
             }
         }
     }
@@ -95,6 +107,7 @@ struct PremiumProgramCard: View {
         ZStack(alignment: .bottomLeading) {
             // Background Image
             AsyncImage(url: URL(string: imageURL)) { phase in
+                let _ = print("🖼️ Loading image: '\(imageURL)'")
                 switch phase {
                 case .empty:
                     Color.ZP.card.overlay(ProgressView())
@@ -102,8 +115,22 @@ struct PremiumProgramCard: View {
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                case .failure:
-                    Color.ZP.card // Fallback
+                case .failure(let error):
+                    let _ = print("❌ Image load failed: \(error)")
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                        Text("Failed to load image")
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                        Text(imageURL)
+                            .font(.caption2)
+                            .foregroundStyle(.gray)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.ZP.card)
                 @unknown default:
                     Color.ZP.card
                 }

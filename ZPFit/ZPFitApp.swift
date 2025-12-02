@@ -7,18 +7,31 @@
 
 import SwiftUI
 import SwiftData
+import FirebaseCore
 
 @main
 struct ZPFitApp: App {
-    // Initialize DIContainer as a static shared instance (no need for @StateObject)
-    private let diContainer = DIContainer.shared
+    
+    // Configure Firebase at the very start, before anything else
+    init() {
+        setupFirebase()
+    }
+    
+    // Static setup to ensure Firebase is configured before DIContainer
+    private func setupFirebase() {
+        // Only configure once
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+    }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(\.diContainer, diContainer)
-                .environmentObject(diContainer.subscriptionService) // Inject as EnvironmentObject for easy access
-                .modelContainer(diContainer.persistenceService.container)
+                .environment(\.diContainer, DIContainer.shared)
+                .environmentObject(DIContainer.shared.subscriptionService)
+                .environmentObject(DIContainer.shared.authenticationService)
+                .modelContainer(DIContainer.shared.persistenceService.container)
                 .preferredColorScheme(.dark) // Force dark mode for premium feel
         }
     }

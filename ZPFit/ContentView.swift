@@ -8,19 +8,26 @@
 import SwiftUI
 
 struct ContentView: View {
-    // Simple routing state for now. 
-    // In Phase 4, we will check AppStorage("hasCompletedOnboarding")
+    @EnvironmentObject private var authService: AuthenticationService
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     
     var body: some View {
-        if hasCompletedOnboarding {
-            MainTabView()
-        } else {
-            OnboardingView(viewModel: OnboardingViewModel(userProfileService: DIContainer.shared.userProfileService))
+        Group {
+            if !authService.isAuthenticated {
+                // Show authentication screen if not logged in
+                AuthenticationView()
+            } else if hasCompletedOnboarding {
+                // Show main app if authenticated and onboarded
+                MainTabView()
+            } else {
+                // Show onboarding if authenticated but not onboarded
+                OnboardingView(viewModel: OnboardingViewModel(userProfileService: DIContainer.shared.userProfileService))
+            }
         }
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(DIContainer.shared.authenticationService)
 }

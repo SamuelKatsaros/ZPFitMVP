@@ -4,13 +4,16 @@ struct HomeView: View {
     @StateObject private var viewModel: HomeViewModel
     @Environment(\.diContainer) private var diContainer
     @State private var searchText = ""
-    @AppStorage("selectedPlan") private var selectedPlan: String?
     @State private var showPlanSelection = false
     @Binding var selectedTab: MainTabView.Tab
     
     init(selectedTab: Binding<MainTabView.Tab>) {
         _selectedTab = selectedTab
-        _viewModel = StateObject(wrappedValue: HomeViewModel(modelContainer: DIContainer.shared.persistenceService.container))
+        _viewModel = StateObject(wrappedValue: HomeViewModel(
+            modelContainer: DIContainer.shared.persistenceService.container,
+            firestoreService: DIContainer.shared.firestoreService,
+            authService: DIContainer.shared.authenticationService
+        ))
     }
     
     var body: some View {
@@ -23,8 +26,8 @@ struct HomeView: View {
                         // Premium Header
                         HomeHeader()
                         
-                        // Hero Section (Program Status)
-                        HeroSection(selectedPlan: selectedPlan, showPlanSelection: $showPlanSelection, selectedTab: $selectedTab)
+                        // Hero Section (Program Status) - now uses viewModel
+                        HeroSection(viewModel: viewModel, showPlanSelection: $showPlanSelection, selectedTab: $selectedTab)
                         
                         // Featured Workouts (Now before Stats)
                         FeaturedWorkoutsSection()
@@ -37,15 +40,8 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
-            .onAppear {
-                viewModel.fetchData()
-                // Don't auto-show plan selection if we want to show the "No program" state in hero
-                // if selectedPlan == nil {
-                //    showPlanSelection = true
-                // }
-            }
             .sheet(isPresented: $showPlanSelection) {
-                ProgramListView() // Using ProgramListView as the selection view
+                ProgramListView()
             }
         }
     }
@@ -98,35 +94,38 @@ struct HomeHeader: View {
 }
 
 struct HeroSection: View {
-    let selectedPlan: String?
+    @ObservedObject var viewModel: HomeViewModel
     @Binding var showPlanSelection: Bool
     @Binding var selectedTab: MainTabView.Tab
-    
-    // Helper to get program details based on ID
-    private var programDetails: (title: String, image: String, difficulty: String) {
-        switch selectedPlan {
-        case "jacklete": return ("Jacklete", "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-02-640w.jpg", "Advanced")
-        case "stndrd6": return ("STNDRD6: SHIFT", "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/new-zach-img-03-640w.jpg", "Intermediate")
-        case "hybrid": return ("Hybrid Athlete", "https://lirp.cdn-website.com/cee6e347/dms3rep/multi/opt/IMG_2678-afe97dc5-640w.PNG", "Expert")
-        default: return ("Program", "gym_background", "Beginner")
-        }
-    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Title above card
-            Text(selectedPlan == nil ? "Select a Program" : programDetails.title)
+            Text(viewModel.selectedProgram == nil ? "Select a Program" : viewModel.selectedProgram?.title ?? "Program")
                 .font(.ZP.title2)
                 .foregroundStyle(Color.ZP.textPrimary)
                 .padding(.horizontal, 20)
             
             ZStack(alignment: .bottom) {
                 // Background Image
-                if let _ = selectedPlan {
-                    AsyncImage(url: URL(string: programDetails.image)) { phase in
+                if let program = viewModel.selectedProgram {
+                    AsyncImage(url: URL(string: program.coverImage)) { phase in
+                        let _ = print("🏠 Home Hero Image: '\(program.coverImage)'")
                         switch phase {
                         case .success(let image):
                             image.resizable().aspectRatio(contentMode: .fill)
+                        case .failure(let error):
+                            let _ = print("❌ Home Image load failed: \(error)")
+                            VStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.red)
+                                Text(program.coverImage)
+                                    .font(.caption2)
+                                    .foregroundStyle(.gray)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.ZP.card)
                         default:
                             Color.ZP.card // Fallback
                         }
@@ -149,7 +148,7 @@ struct HeroSection: View {
                 }
                 
                 // Content
-                if selectedPlan == nil {
+                if viewModel.selectedProgram == nil {
                     VStack(spacing: 12) {
                         Text("No program, no plan")
                             .font(.ZP.title1)
@@ -173,7 +172,7 @@ struct HeroSection: View {
                 } else {
                     // Selected Program State Content
                     ZStack(alignment: .bottom) {
-                        // Top Right Timer
+// Top Right Timer
                         VStack {
                             HStack {
                                 Spacer()
@@ -183,7 +182,7 @@ struct HeroSection: View {
                                         .frame(width: 50, height: 50)
                                     
                                     VStack(spacing: 0) {
-                                        Text("60")
+                                        Text("\(viewModel.currentDay?.durationMinutes ?? 60)")
                                             .font(.system(size: 14, weight: .bold))
                                             .foregroundStyle(Color.blue)
                                         Text("min")
@@ -213,14 +212,14 @@ struct HeroSection: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "chart.bar.fill")
                                         .font(.caption2)
-                                    Text(programDetails.difficulty)
+                                    Text(viewModel.selectedProgram?.difficulty ?? "Beginner")
                                         .font(.caption)
                                         .fontWeight(.bold)
                                 }
-                                .foregroundStyle(Color.purple)
+                                .foregroundStyle(difficultyColor(for: viewModel.selectedProgram?.difficulty))
                                 
                                 // Workout Title
-                                Text("Abs + Cardio")
+                                Text(viewModel.currentDay?.title ?? "Rest Day")
                                     .font(.ZP.title2)
                                     .foregroundStyle(Color.white)
                             }
@@ -229,7 +228,7 @@ struct HeroSection: View {
                             
                             // Start Button
                             Button(action: { selectedTab = .programs }) {
-                                Text("Start Day 1")
+                                Text("Start Day \(viewModel.currentDay?.dayNumber ?? 1)")
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundStyle(Color.white)
                                     .padding(.horizontal, 16)
@@ -245,11 +244,29 @@ struct HeroSection: View {
             }
             .padding(.horizontal, 20)
             
-            if selectedPlan != nil {
+            if viewModel.selectedProgram != nil {
                 // W1 Component
                 WeekAtAGlance()
                     .padding(.horizontal, 20)
             }
+        }
+    }
+    
+    // Helper function to get color based on difficulty
+    private func difficultyColor(for difficulty: String?) -> Color {
+        guard let difficulty = difficulty?.lowercased() else {
+            return Color.green // Default for Beginner
+        }
+        
+        switch difficulty {
+        case "beginner":
+            return Color.green
+        case "intermediate":
+            return Color.blue
+        case "advanced":
+            return Color.purple
+        default:
+            return Color.green
         }
     }
 }

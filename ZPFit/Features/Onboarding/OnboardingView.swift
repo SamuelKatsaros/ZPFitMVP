@@ -15,7 +15,7 @@ struct OnboardingView: View {
             VStack {
                 // Progress Indicator
                 HStack(spacing: 4) {
-                    ForEach(0..<4) { index in
+                    ForEach(0..<3) { index in
                         Capsule()
                             .fill(index <= viewModel.currentStep ? Color.ZP.primary : Color.ZP.card)
                             .frame(height: 4)
@@ -34,13 +34,6 @@ struct OnboardingView: View {
                     } else if viewModel.currentStep == 1 {
                         NameStep(name: $viewModel.name, action: viewModel.nextStep)
                     } else if viewModel.currentStep == 2 {
-                        SelectionStep(
-                            title: "What is your main goal?",
-                            options: viewModel.goals,
-                            selection: $viewModel.selectedGoal,
-                            action: viewModel.nextStep
-                        )
-                    } else if viewModel.currentStep == 3 {
                         SelectionStep(
                             title: "Experience Level",
                             options: viewModel.experienceLevels,

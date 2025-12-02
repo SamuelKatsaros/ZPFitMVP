@@ -123,14 +123,14 @@ struct WorkoutDetailView: View {
                                 .primaryButton()
                         }
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 40) // Increased safe area padding
                     } else {
                         Button(action: {}) {
                             Text("Start Workout")
                                 .primaryButton()
                         }
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 40) // Increased safe area padding
                     }
                 }
             }
