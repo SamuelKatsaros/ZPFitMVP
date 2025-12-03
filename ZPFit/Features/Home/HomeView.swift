@@ -5,6 +5,8 @@ struct HomeView: View {
     @Environment(\.diContainer) private var diContainer
     @State private var searchText = ""
     @State private var showPlanSelection = false
+    @State private var selectedSession: FirestoreSession?
+    @State private var showAllSessions = false
     @Binding var selectedTab: MainTabView.Tab
     
     init(selectedTab: Binding<MainTabView.Tab>) {
@@ -30,7 +32,11 @@ struct HomeView: View {
                         HeroSection(viewModel: viewModel, showPlanSelection: $showPlanSelection, selectedTab: $selectedTab)
                         
                         // Featured Workouts (Now before Stats)
-                        FeaturedWorkoutsSection(viewModel: viewModel)
+                        FeaturedWorkoutsSection(
+                            viewModel: viewModel,
+                            selectedSession: $selectedSession,
+                            showAllSessions: $showAllSessions
+                        )
                         
 
                     }
@@ -41,6 +47,25 @@ struct HomeView: View {
             .navigationBarHidden(true)
             .sheet(isPresented: $showPlanSelection) {
                 ProgramListView()
+            }
+            .fullScreenCover(item: $selectedSession) { session in
+                SessionPlayerView(
+                    sessions: [session], // Only pass the selected session
+                    initialSessionId: session.id ?? "",
+                    isPresented: Binding(
+                        get: { selectedSession != nil },
+                        set: { if !$0 { selectedSession = nil } }
+                    )
+                )
+            }
+            .fullScreenCover(isPresented: $showAllSessions) {
+                if let firstSession = viewModel.sessions.first {
+                    SessionPlayerView(
+                        sessions: viewModel.sessions, // Pass all sessions
+                        initialSessionId: firstSession.id ?? "",
+                        isPresented: $showAllSessions
+                    )
+                }
             }
         }
     }
@@ -329,6 +354,8 @@ struct WeekAtAGlance: View {
 
 struct FeaturedWorkoutsSection: View {
     @ObservedObject var viewModel: HomeViewModel
+    @Binding var selectedSession: FirestoreSession?
+    @Binding var showAllSessions: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -338,12 +365,15 @@ struct FeaturedWorkoutsSection: View {
                     .font(.ZP.title2)
                     .foregroundStyle(Color.ZP.textPrimary)
                 Spacer()
-                Text("See all")
-                    .font(.ZP.subheadline)
+                Button(action: { showAllSessions = true }) {
+                    HStack(spacing: 4) {
+                        Text("See all")
+                            .font(.ZP.subheadline)
+                        Image(systemName: "chevron.right")
+                            .font(.ZP.caption)
+                    }
                     .foregroundStyle(Color.ZP.textSecondary)
-                Image(systemName: "chevron.right")
-                    .font(.ZP.caption)
-                    .foregroundStyle(Color.ZP.textSecondary)
+                }
             }
             .padding(.horizontal, 20)
             
@@ -377,6 +407,9 @@ struct FeaturedWorkoutsSection: View {
                     HStack(spacing: 16) {
                         ForEach(viewModel.sessions) { session in
                             SessionCard(session: session)
+                                .onTapGesture {
+                                    selectedSession = session
+                                }
                         }
                     }
                     .padding(.horizontal, 20)

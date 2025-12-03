@@ -31,7 +31,7 @@ struct ProgramListView: View {
                             .font(.ZP.title2)
                             .foregroundStyle(Color.ZP.textPrimary)
                         
-                        Text("Programs will appear here once added to Firestore")
+                        Text("Programs will appear here once added")
                             .font(.ZP.body)
                             .foregroundStyle(Color.ZP.textSecondary)
                             .multilineTextAlignment(.center)
