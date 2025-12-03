@@ -14,14 +14,15 @@ struct ContentView: View {
     var body: some View {
         Group {
             if !authService.isAuthenticated {
-                // Show authentication screen if not logged in
-                AuthenticationView()
-            } else if hasCompletedOnboarding {
-                // Show main app if authenticated and onboarded
-                MainTabView()
+                // Show onboarding/signup for unauthenticated users
+                // Authentication is now integrated into onboarding flow
+                OnboardingView(viewModel: OnboardingViewModel(
+                    authService: DIContainer.shared.authenticationService,
+                    firestoreService: DIContainer.shared.firestoreService
+                ))
             } else {
-                // Show onboarding if authenticated but not onboarded
-                OnboardingView(viewModel: OnboardingViewModel(userProfileService: DIContainer.shared.userProfileService))
+                // Show main app if authenticated
+                MainTabView()
             }
         }
     }

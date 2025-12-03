@@ -12,10 +12,10 @@ struct OnboardingView: View {
         ZStack {
             Color.ZP.background.ignoresSafeArea()
             
-            VStack {
+            VStack(spacing: 0) {
                 // Progress Indicator
                 HStack(spacing: 4) {
-                    ForEach(0..<3) { index in
+                    ForEach(0..<8) { index in
                         Capsule()
                             .fill(index <= viewModel.currentStep ? Color.ZP.primary : Color.ZP.card)
                             .frame(height: 4)
@@ -25,35 +25,53 @@ struct OnboardingView: View {
                 .padding(.horizontal)
                 .padding(.top, 20)
                 
-                Spacer()
-                
-                // Steps
-                Group {
-                    if viewModel.currentStep == 0 {
-                        WelcomeStep(action: viewModel.nextStep)
-                    } else if viewModel.currentStep == 1 {
-                        NameStep(name: $viewModel.name, action: viewModel.nextStep)
-                    } else if viewModel.currentStep == 2 {
-                        SelectionStep(
-                            title: "Experience Level",
-                            options: viewModel.experienceLevels,
-                            selection: $viewModel.selectedExperience,
-                            action: viewModel.completeOnboarding
-                        )
+                // Content
+                ScrollView {
+                    VStack(spacing: 20) {
+                        Group {
+                            switch viewModel.currentStep {
+                            case 0:
+                                WelcomeStep(action: viewModel.nextStep)
+                            case 1:
+                                EmailPasswordStep(viewModel: viewModel)
+                            case 2:
+                                NameStep(viewModel: viewModel)
+                            case 3:
+                                DateOfBirthStep(viewModel: viewModel)
+                            case 4:
+                                HeightStep(viewModel: viewModel)
+                            case 5:
+                                WeightStep(viewModel: viewModel)
+                            case 6:
+                                ExperienceStep(viewModel: viewModel)
+                            case 7:
+                                GoalsStep(viewModel: viewModel)
+                            default:
+                                WelcomeStep(action: viewModel.nextStep)
+                            }
+                        }
+                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                     }
+                    .padding(.vertical, 40)
                 }
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                 
-                Spacer()
+                // Error Message
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.ZP.caption)
+                        .foregroundStyle(Color.ZP.error)
+                        .padding()
+                        .multilineTextAlignment(.center)
+                }
             }
         }
     }
 }
 
-// MARK: - Steps
-
+// MARK: - Step 0: Welcome
 struct WelcomeStep: View {
     var action: () -> Void
+    @State private var showLogin = false
     
     var body: some View {
         VStack(spacing: 20) {
@@ -75,6 +93,7 @@ struct WelcomeStep: View {
             
             Spacer().frame(height: 40)
             
+            // Get Started (Sign Up)
             Button(action: action) {
                 Text("Get Started")
                     .font(.ZP.headline)
@@ -82,17 +101,84 @@ struct WelcomeStep: View {
                     .padding()
                     .background(Color.ZP.primary)
                     .foregroundStyle(Color.ZP.textBlack)
-                    .shadow(color: Color.ZP.primary.opacity(0.3), radius: 10, x: 0, y: 5)
                     .cornerRadius(12)
             }
+            .padding(.horizontal, 40)
+            
+            // Sign In
+            Button(action: { showLogin = true }) {
+                HStack(spacing: 4) {
+                    Text("Already have an account?")
+                        .foregroundStyle(Color.ZP.textSecondary)
+                    Text("Sign In")
+                        .foregroundStyle(Color.ZP.primary)
+                }
+                .font(.ZP.subheadline)
+            }
+        }
+        .sheet(isPresented: $showLogin) {
+            LoginView()
+        }
+    }
+}
+
+// MARK: - Step 1: Email & Password
+struct EmailPasswordStep: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Create Your Account")
+                .font(.ZP.title1)
+                .foregroundStyle(Color.ZP.textPrimary)
+            
+            Text("Sign up to get started with ZP Fit")
+                .font(.ZP.body)
+                .foregroundStyle(Color.ZP.textSecondary)
+            
+            VStack(spacing: 16) {
+                CustomTextField(
+                    icon: "envelope.fill",
+                    placeholder: "Email",
+                    text: $viewModel.email,
+                    keyboardType: .emailAddress,
+                    autocapitalization: .never
+                )
+                
+                CustomTextField(
+                    icon: "lock.fill",
+                    placeholder: "Password (min 6 characters)",
+                    text: $viewModel.password,
+                    isSecure: true
+                )
+                
+                CustomTextField(
+                    icon: "lock.fill",
+                    placeholder: "Confirm Password",
+                    text: $viewModel.confirmPassword,
+                    isSecure: true
+                )
+            }
+            .padding(.horizontal, 40)
+            
+            Button(action: viewModel.nextStep) {
+                Text("Next")
+                    .font(.ZP.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(viewModel.isEmailStepValid ? Color.ZP.primary : Color.ZP.cardHover)
+                    .foregroundStyle(viewModel.isEmailStepValid ? Color.ZP.textBlack : Color.ZP.textSecondary)
+                    .cornerRadius(12)
+            }
+            .disabled(!viewModel.isEmailStepValid)
             .padding(.horizontal, 40)
         }
     }
 }
 
+// MARK: - Step 2: Name
 struct NameStep: View {
-    @Binding var name: String
-    var action: () -> Void
+    @ObservedObject var viewModel: OnboardingViewModel
     
     var body: some View {
         VStack(spacing: 20) {
@@ -100,75 +186,344 @@ struct NameStep: View {
                 .font(.ZP.title1)
                 .foregroundStyle(Color.ZP.textPrimary)
             
-            TextField("Your Name", text: $name)
-                .font(.ZP.title2)
-                .padding()
-                .background(Color.ZP.card)
-                .cornerRadius(12)
-                .foregroundStyle(Color.ZP.textPrimary)
-                .padding(.horizontal, 40)
-            
-            Button(action: action) {
-                Text("Next")
-                    .font(.ZP.headline)
-                    .frame(maxWidth: .infinity)
+            VStack(spacing: 16) {
+                TextField("First Name", text: $viewModel.firstName)
+                    .font(.ZP.body)
                     .padding()
-                    .background(name.isEmpty ? Color.ZP.cardHover : Color.ZP.primary)
-                    .foregroundStyle(name.isEmpty ? Color.ZP.textSecondary : Color.ZP.textBlack)
+                    .background(Color.ZP.card)
                     .cornerRadius(12)
+                    .foregroundStyle(Color.ZP.textPrimary)
+                
+                TextField("Last Name", text: $viewModel.lastName)
+                    .font(.ZP.body)
+                    .padding()
+                    .background(Color.ZP.card)
+                    .cornerRadius(12)
+                    .foregroundStyle(Color.ZP.textPrimary)
             }
-            .disabled(name.isEmpty)
+            .padding(.horizontal, 40)
+            
+            HStack(spacing: 12) {
+                Button(action: viewModel.previousStep) {
+                    Text("Back")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.card)
+                        .foregroundStyle(Color.ZP.textPrimary)
+                        .cornerRadius(12)
+                }
+                
+                Button(action: viewModel.nextStep) {
+                    Text("Next")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(viewModel.isNameStepValid ? Color.ZP.primary : Color.ZP.cardHover)
+                        .foregroundStyle(viewModel.isNameStepValid ? Color.ZP.textBlack : Color.ZP.textSecondary)
+                        .cornerRadius(12)
+                }
+                .disabled(!viewModel.isNameStepValid)
+            }
             .padding(.horizontal, 40)
         }
     }
 }
 
-struct SelectionStep: View {
-    let title: String
-    let options: [String]
-    @Binding var selection: String
-    var action: () -> Void
+// MARK: - Step 3: Date of Birth
+struct DateOfBirthStep: View {
+    @ObservedObject var viewModel: OnboardingViewModel
     
     var body: some View {
         VStack(spacing: 20) {
-            Text(title)
+            Text("When's your birthday?")
                 .font(.ZP.title1)
                 .foregroundStyle(Color.ZP.textPrimary)
             
-            ForEach(options, id: \.self) { option in
-                Button(action: { selection = option }) {
+            DatePicker("", selection: $viewModel.dateOfBirth, displayedComponents: .date)
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .colorScheme(.dark)
+                .padding(.horizontal, 40)
+            
+            HStack(spacing: 12) {
+                Button(action: viewModel.previousStep) {
+                    Text("Back")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.card)
+                        .foregroundStyle(Color.ZP.textPrimary)
+                        .cornerRadius(12)
+                }
+                
+                Button(action: viewModel.nextStep) {
+                    Text("Next")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.primary)
+                        .foregroundStyle(Color.ZP.textBlack)
+                        .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 40)
+        }
+    }
+}
+
+// MARK: - Step 4: Height
+struct HeightStep: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("How tall are you?")
+                .font(.ZP.title1)
+                .foregroundStyle(Color.ZP.textPrimary)
+            
+            HStack(spacing: 20) {
+                VStack {
+                    Text("Feet")
+                        .font(.ZP.caption)
+                        .foregroundStyle(Color.ZP.textSecondary)
+                    Picker("Feet", selection: $viewModel.heightFeet) {
+                        ForEach(3..<8) { feet in
+                            Text("\(feet)").tag(feet)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                }
+                
+                VStack {
+                    Text("Inches")
+                        .font(.ZP.caption)
+                        .foregroundStyle(Color.ZP.textSecondary)
+                    Picker("Inches", selection: $viewModel.heightInches) {
+                        ForEach(0..<12) { inches in
+                            Text("\(inches)").tag(inches)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                }
+            }
+            .padding()
+            .background(Color.ZP.card)
+            .cornerRadius(16)
+            .padding(.horizontal, 40)
+            
+            HStack(spacing: 12) {
+                Button(action: viewModel.previousStep) {
+                    Text("Back")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.card)
+                        .foregroundStyle(Color.ZP.textPrimary)
+                        .cornerRadius(12)
+                }
+                
+                Button(action: viewModel.nextStep) {
+                    Text("Next")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.primary)
+                        .foregroundStyle(Color.ZP.textBlack)
+                        .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 40)
+        }
+    }
+}
+
+// MARK: - Step 5: Weight
+struct WeightStep: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("What's your weight?")
+                .font(.ZP.title1)
+                .foregroundStyle(Color.ZP.textPrimary)
+            
+            HStack {
+                TextField("Weight", text: $viewModel.weightPounds)
+                    .font(.ZP.title2)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.center)
+                    .padding()
+                    .background(Color.ZP.card)
+                    .cornerRadius(12)
+                    .foregroundStyle(Color.ZP.textPrimary)
+                
+                Text("lbs")
+                    .font(.ZP.title2)
+                    .foregroundStyle(Color.ZP.textSecondary)
+            }
+            .padding(.horizontal, 40)
+            
+            HStack(spacing: 12) {
+                Button(action: viewModel.previousStep) {
+                    Text("Back")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.card)
+                        .foregroundStyle(Color.ZP.textPrimary)
+                        .cornerRadius(12)
+                }
+                
+                Button(action: viewModel.nextStep) {
+                    Text("Next")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(viewModel.isWeightStepValid ? Color.ZP.primary : Color.ZP.cardHover)
+                        .foregroundStyle(viewModel.isWeightStepValid ? Color.ZP.textBlack : Color.ZP.textSecondary)
+                        .cornerRadius(12)
+                }
+                .disabled(!viewModel.isWeightStepValid)
+            }
+            .padding(.horizontal, 40)
+        }
+    }
+}
+
+// MARK: - Step 6: Experience Level
+struct ExperienceStep: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Experience Level")
+                .font(.ZP.title1)
+                .foregroundStyle(Color.ZP.textPrimary)
+            
+            ForEach(viewModel.experienceLevels, id: \.self) { level in
+                Button(action: { viewModel.selectedExperience = level }) {
                     HStack {
-                        Text(option)
+                        Text(level)
                             .font(.ZP.body)
                             .foregroundStyle(Color.ZP.textPrimary)
                         Spacer()
-                        if selection == option {
+                        if viewModel.selectedExperience == level {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(Color.ZP.primary)
                         }
                     }
                     .padding()
-                    .background(selection == option ? Color.ZP.cardHover : Color.ZP.card)
+                    .background(viewModel.selectedExperience == level ? Color.ZP.cardHover : Color.ZP.card)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(selection == option ? Color.ZP.primary : Color.clear, lineWidth: 1)
+                            .stroke(viewModel.selectedExperience == level ? Color.ZP.primary : Color.clear, lineWidth: 1)
                     )
                 }
                 .padding(.horizontal, 40)
             }
             
-            Spacer().frame(height: 20)
+            HStack(spacing: 12) {
+                Button(action: viewModel.previousStep) {
+                    Text("Back")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.card)
+                        .foregroundStyle(Color.ZP.textPrimary)
+                        .cornerRadius(12)
+                }
+                
+                Button(action: viewModel.nextStep) {
+                    Text("Next")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.primary)
+                        .foregroundStyle(Color.ZP.textBlack)
+                        .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 40)
+        }
+    }
+}
+
+// MARK: - Step 7: Goals
+struct GoalsStep: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("What are your goals?")
+                .font(.ZP.title1)
+                .foregroundStyle(Color.ZP.textPrimary)
             
-            Button(action: action) {
-                Text("Continue")
-                    .font(.ZP.headline)
+            Text("Select all that apply")
+                .font(.ZP.body)
+                .foregroundStyle(Color.ZP.textSecondary)
+            
+            ForEach(viewModel.goalOptions, id: \.self) { goal in
+                Button(action: { viewModel.toggleGoal(goal) }) {
+                    HStack {
+                        Text(goal)
+                            .font(.ZP.body)
+                            .foregroundStyle(Color.ZP.textPrimary)
+                        Spacer()
+                        if viewModel.selectedGoals.contains(goal) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Color.ZP.primary)
+                        } else {
+                            Image(systemName: "circle")
+                                .foregroundStyle(Color.ZP.textSecondary)
+                        }
+                    }
+                    .padding()
+                    .background(viewModel.selectedGoals.contains(goal) ? Color.ZP.cardHover : Color.ZP.card)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(viewModel.selectedGoals.contains(goal) ? Color.ZP.primary : Color.clear, lineWidth: 1)
+                    )
+                }
+                .padding(.horizontal, 40)
+            }
+            
+            HStack(spacing: 12) {
+                Button(action: viewModel.previousStep) {
+                    Text("Back")
+                        .font(.ZP.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.ZP.card)
+                        .foregroundStyle(Color.ZP.textPrimary)
+                        .cornerRadius(12)
+                }
+                
+                Button(action: {
+                    Task {
+                        await viewModel.completeOnboarding()
+                    }
+                }) {
+                    ZStack {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .tint(.black)
+                        } else {
+                            Text("Complete")
+                                .font(.ZP.headline)
+                        }
+                    }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.ZP.primary)
-                    .foregroundStyle(Color.ZP.textBlack)
-                    .shadow(color: Color.ZP.primary.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .background(viewModel.isGoalsStepValid ? Color.ZP.primary : Color.ZP.cardHover)
+                    .foregroundStyle(viewModel.isGoalsStepValid ? Color.ZP.textBlack : Color.ZP.textSecondary)
                     .cornerRadius(12)
+                }
+                .disabled(!viewModel.isGoalsStepValid || viewModel.isLoading)
             }
             .padding(.horizontal, 40)
         }

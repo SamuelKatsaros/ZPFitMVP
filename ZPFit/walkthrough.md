@@ -17,5 +17,5 @@
 -   **Fallback**: If "Jacklete" is selected but data is missing, the view now correctly displays the "Chest + Shoulders" workout instead of a loading screen.
 
 ## Next Steps
--   Ensure `ProgramDataSeeder` runs correctly to populate the SwiftData store, so `TodaysWorkoutView` can find the program details.
+-   Ensure Firestore data is loaded correctly so `TodaysWorkoutView` can find the program details.
 -   Implement the actual workout logic in `TodaysWorkoutView` (currently reuses `WorkoutDetailView` or fallback).

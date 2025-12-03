@@ -153,12 +153,24 @@ struct AuthenticationView: View {
             do {
                 if isSignUp {
                     try await authService.signUp(email: email, password: password, name: name)
-                    // Create user profile in Firestore
+                    // Create user profile in Firestore (legacy - minimal data)
                     if let userId = authService.currentUserId {
+                        // Split name into first/last if possible
+                        let nameParts = name.split(separator: " ")
+                        let firstName = nameParts.first.map(String.init)
+                        let lastName = nameParts.count > 1 ? nameParts.dropFirst().joined(separator: " ") : nil
+                        
                         try await DIContainer.shared.firestoreService.createUserProfile(
                             userId: userId,
                             email: email,
-                            name: name
+                            firstName: firstName,
+                            lastName: lastName,
+                            dateOfBirth: nil,
+                            heightFeet: nil,
+                            heightInches: nil,
+                            weightPounds: nil,
+                            experienceLevel: nil,
+                            goals: nil
                         )
                     }
                 } else {

@@ -8,6 +8,8 @@ class TodaysWorkoutViewModel: ObservableObject {
     @Published var currentDay: FirestoreProgramDay?
     @Published var error: String?
     
+    @Published var isCompleted: Bool = false
+    
     private let firestoreService: FirestoreService
     private let authService: AuthenticationService
     private var cancellables = Set<AnyCancellable>()
@@ -20,7 +22,7 @@ class TodaysWorkoutViewModel: ObservableObject {
     }
     
     private func setupSubscriptions() {
-        // Subscribe to current program from FirestoreService
+        // Subscribe to current program
         firestoreService.$currentProgram
             .sink { [weak self] program in
                 self?.selectedProgram = program
@@ -28,14 +30,32 @@ class TodaysWorkoutViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
-        // Subscribe to current program days
-        firestoreService.$currentProgramDays
-            .sink { [weak self] days in
-                self?.currentDay = days.first
+        // Subscribe to days AND user profile to select correct day
+        Publishers.CombineLatest(firestoreService.$currentProgramDays, firestoreService.$currentUserProfile)
+            .sink { [weak self] days, profile in
+                self?.updateCurrentDay(days: days, profile: profile)
             }
             .store(in: &cancellables)
     }
     
-    // Note: fetchData() and isLoading removed - data is now loaded once in AuthenticationService
-    // and updates automatically via subscriptions above
+    private func updateCurrentDay(days: [FirestoreProgramDay], profile: FirestoreUserProfile?) {
+        guard let profile = profile else {
+            currentDay = days.first
+            isCompleted = false
+            return
+        }
+        
+        // Check if completed today
+        if let lastCompletion = profile.lastCompletionDate, Calendar.current.isDateInToday(lastCompletion) {
+            isCompleted = true
+            // If completed today, show the day they just completed (currentDayNumber - 1)
+            let completedDayNum = (profile.currentDayNumber ?? 1) - 1
+            currentDay = days.first { $0.dayNumber == completedDayNum } ?? days.first
+        } else {
+            isCompleted = false
+            // Show next day to complete
+            let nextDayNum = profile.currentDayNumber ?? 1
+            currentDay = days.first { $0.dayNumber == nextDayNum } ?? days.first
+        }
+    }
 }

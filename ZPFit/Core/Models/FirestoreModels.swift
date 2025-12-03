@@ -160,24 +160,95 @@ enum ProgressStatus: String, Codable {
 struct FirestoreUserProfile: Codable {
     @DocumentID var id: String?
     var email: String?
-    var name: String?
+    
+    // Personal Details
+    var firstName: String?
+    var lastName: String?
+    var dateOfBirth: Date?
+    var heightFeet: Int?         // e.g., 5
+    var heightInches: Int?       // e.g., 10 → 5'10"
+    var weightPounds: Int?       // e.g., 175
+    var experienceLevel: String? // Beginner, Intermediate, Advanced
+    var goals: [String]?         // ["Build Muscle", "Lose Weight", etc.]
+    
+    // Legacy field for backward compatibility
+    var name: String?  // Computed from firstName + lastName if needed
+    var goal: String?  // First goal from goals array
+    
+    // Program Tracking
     var currentProgramId: String?
     var currentDayNumber: Int?
+    var lastCompletionDate: Date?  // Track when last day was completed
+    
+    // Metadata
     var joinedDate: Date?
-    var experienceLevel: String?
-    var goal: String?
     var updatedAt: Date?
+    
+    // Computed properties
+    var fullName: String {
+        if let first = firstName, let last = lastName {
+            return "\(first) \(last)"
+        }
+        return name ?? ""
+    }
+    
+    var initials: String {
+        let first = firstName?.first.map(String.init) ?? ""
+        let last = lastName?.first.map(String.init) ?? ""
+        return first + last
+    }
+    
+    var heightFormatted: String {
+        guard let feet = heightFeet, let inches = heightInches else {
+            return "Not set"
+        }
+        return "\(feet)'\(inches)\""
+    }
+    
+    var weightFormatted: String {
+        guard let weight = weightPounds else {
+            return "Not set"
+        }
+        return "\(weight) lbs"
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
         case email
+        case firstName
+        case lastName
+        case dateOfBirth
+        case heightFeet
+        case heightInches
+        case weightPounds
+        case experienceLevel
+        case goals
         case name
+        case goal
         case currentProgramId
         case currentDayNumber
+        case lastCompletionDate
         case joinedDate
-        case experienceLevel
-        case goal
         case updatedAt
+    }
+}
+
+// MARK: - Firestore Day Completion
+struct FirestoreDayCompletion: Codable, Identifiable {
+    @DocumentID var id: String?
+    var programId: String
+    var dayId: String
+    var dayNumber: Int
+    var completedAt: Date
+    var durationMinutes: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case programId
+        case dayId
+        case dayNumber
+        case completedAt
+        case durationMinutes
     }
 }
 

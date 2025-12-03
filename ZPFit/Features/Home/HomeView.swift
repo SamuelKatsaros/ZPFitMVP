@@ -73,24 +73,26 @@ struct HomeView: View {
 
 // MARK: - Components
 
+
 struct HomeHeader: View {
     @Environment(\.diContainer) private var diContainer
+    @ObservedObject var firestoreService: FirestoreService = DIContainer.shared.firestoreService
     
     var body: some View {
         HStack {
-            // Avatar
+            // Avatar with dynamic initials
             Circle()
                 .fill(Color.white)
                 .frame(width: 50, height: 50)
                 .overlay(
-                    Text("SK")
+                    Text(firestoreService.currentUserProfile?.initials ?? "??")
                         .font(.ZP.headline)
                         .foregroundStyle(Color.black)
                 )
             
             // Name & Date
             VStack(alignment: .leading, spacing: 4) {
-                Text("Sam")
+                Text(firestoreService.currentUserProfile?.firstName ?? "User")
                     .font(.ZP.title2)
                     .foregroundStyle(Color.ZP.textPrimary)
                 Text(Date().formatted(date: .long, time: .omitted))
@@ -232,33 +234,61 @@ struct HeroSection: View {
                         // Bottom Content
                         HStack(alignment: .bottom) {
                             VStack(alignment: .leading, spacing: 8) {
-                                // Difficulty Badge
-                                HStack(spacing: 4) {
-                                    Image(systemName: "chart.bar.fill")
-                                        .font(.caption2)
-                                    Text(viewModel.selectedProgram?.difficulty ?? "Beginner")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
+                                // Difficulty Badge or Completion Status
+                                if viewModel.completedToday {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.caption2)
+                                        Text("Completed!")
+                                            .font(.caption)
+                                            .fontWeight(.bold)
+                                    }
+                                    .foregroundStyle(Color.green)
+                                } else {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "chart.bar.fill")
+                                            .font(.caption2)
+                                        Text(viewModel.selectedProgram?.difficulty ?? "Beginner")
+                                            .font(.caption)
+                                            .fontWeight(.bold)
+                                    }
+                                    .foregroundStyle(difficultyColor(for: viewModel.selectedProgram?.difficulty))
                                 }
-                                .foregroundStyle(difficultyColor(for: viewModel.selectedProgram?.difficulty))
                                 
                                 // Workout Title
                                 Text(viewModel.currentDay?.title ?? "Rest Day")
                                     .font(.ZP.title2)
                                     .foregroundStyle(Color.white)
+                                
+                                // Show next day message if completed
+                                if viewModel.completedToday {
+                                    Text("Next: Day \(viewModel.nextAvailableDay) tomorrow")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.white.opacity(0.7))
+                                }
                             }
                             
                             Spacer()
                             
                             // Start Button
                             Button(action: { selectedTab = .programs }) {
-                                Text("Start Day \(viewModel.currentDay?.dayNumber ?? 1)")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(Color.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(Color(red: 0.0, green: 0.35, blue: 0.9))
-                                    .cornerRadius(12)
+                                if viewModel.completedToday {
+                                    Text("View Workout")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(Color.white)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(Color.white.opacity(0.2))
+                                        .cornerRadius(12)
+                                } else {
+                                    Text("Start Day \(viewModel.nextAvailableDay)")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(Color.white)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(Color(red: 0.0, green: 0.35, blue: 0.9))
+                                        .cornerRadius(12)
+                                }
                             }
                         }
                         .padding(16)
@@ -270,7 +300,7 @@ struct HeroSection: View {
             
             if viewModel.selectedProgram != nil {
                 // W1 Component
-                WeekAtAGlance()
+                WeekAtAGlance(viewModel: viewModel)
                     .padding(.horizontal, 20)
             }
         }
@@ -296,6 +326,8 @@ struct HeroSection: View {
 }
 
 struct WeekAtAGlance: View {
+    @ObservedObject var viewModel: HomeViewModel
+    
     var body: some View {
         HStack(spacing: 16) {
             Text("W1")
@@ -303,50 +335,59 @@ struct WeekAtAGlance: View {
                 .foregroundStyle(Color.white)
             
             HStack(spacing: 10) {
-                // Day 1 - Active (Blue dashed circle with check)
-                ZStack {
-                    Circle()
-                        .stroke(Color.blue, style: StrokeStyle(lineWidth: 2, dash: [3, 3]))
-                        .frame(width: 28, height: 28)
-                    
-                    Image(systemName: "checkmark")
-                        .font(.caption2)
-                        .foregroundStyle(Color.blue)
-                }
-                
-                // Other days
-                ForEach(0..<4) { _ in
-                    Circle()
-                        .fill(Color.white.opacity(0.1))
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Image(systemName: "checkmark")
-                                .font(.caption2)
-                                .foregroundStyle(Color.white.opacity(0.2))
-                        )
-                }
-                
-                // Rest days
-                ForEach(0..<2) { _ in
-                    Circle()
-                        .fill(Color.white.opacity(0.1))
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Image(systemName: "moon.fill")
-                                .font(.caption2)
-                                .foregroundStyle(Color.white.opacity(0.2))
-                        )
+                // All 7 days
+                ForEach(1...7, id: \.self) { dayNumber in
+                    dayIndicator(for: dayNumber)
                 }
                 
                 Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(Color.ZP.textSecondary)
             }
         }
         .padding(16)
         .background(Color.ZP.card)
         .cornerRadius(20)
+    }
+    
+    @ViewBuilder
+    private func dayIndicator(for dayNumber: Int) -> some View {
+        let nextDay = viewModel.nextAvailableDay
+        
+        if dayNumber < nextDay {
+            // Completed days - solid blue filled circle with white checkmark
+            ZStack {
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 28, height: 28)
+                
+                Image(systemName: "checkmark")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.white)
+            }
+        } else if dayNumber == nextDay {
+            // Current day (pending) - blue dashed circle with dimmed checkmark
+            ZStack {
+                Circle()
+                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
+                    .frame(width: 28, height: 28)
+                
+                Image(systemName: "checkmark")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.blue.opacity(0.5))
+            }
+        } else {
+            // Future days - gray circle with dimmed checkmark
+            Circle()
+                .fill(Color.white.opacity(0.1))
+                .frame(width: 28, height: 28)
+                .overlay(
+                    Image(systemName: "checkmark")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.white.opacity(0.2))
+                )
+        }
     }
 }
 

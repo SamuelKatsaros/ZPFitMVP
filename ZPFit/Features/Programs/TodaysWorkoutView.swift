@@ -27,6 +27,7 @@ struct TodaysWorkoutView: View {
                     WorkoutContent(
                         program: program,
                         day: day,
+                        isCompleted: viewModel.isCompleted,
                         showChangeProgramAlert: $showChangeProgramAlert,
                         onExerciseTap: { urlString in
                             if let urlString = urlString, let url = URL(string: urlString) {
@@ -47,9 +48,13 @@ struct TodaysWorkoutView: View {
     struct WorkoutContent: View {
         let program: FirestoreProgram
         let day: FirestoreProgramDay
+        let isCompleted: Bool
         @Binding var showChangeProgramAlert: Bool
         let onExerciseTap: (String?) -> Void
         @Environment(\.diContainer) private var diContainer
+        
+        @State private var isCompleting = false
+        @State private var showCompletionSuccess = false
         
         var body: some View {
             VStack(spacing: 0) {
@@ -154,20 +159,50 @@ struct TodaysWorkoutView: View {
                         }
                         
                         // Complete Workout button
-                        Button(action: {
-                            // TODO: Mark workout as complete
-                            print("Completing workout for day \(day.dayNumber)")
-                        }) {
-                            Text("Complete Workout")
-                                .font(.ZP.headline)
-                                .foregroundStyle(Color.white)
+                        if showCompletionSuccess {
+                            VStack(spacing: 12) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundStyle(Color.green)
+                                
+                                Text("Workout Completed!")
+                                    .font(.ZP.title2)
+                                    .foregroundStyle(Color.ZP.textPrimary)
+                                
+                                Text("Great job! Come back tomorrow for Day \(day.dayNumber + 1).")
+                                    .font(.ZP.body)
+                                    .foregroundStyle(Color.ZP.textSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.ZP.card)
+                            .cornerRadius(12)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 100)
+                        } else {
+                            Button(action: {
+                                completeWorkout()
+                            }) {
+                                ZStack {
+                                    if isCompleting {
+                                        ProgressView()
+                                            .tint(.white)
+                                    } else {
+                                        Text("Complete Workout")
+                                            .font(.ZP.headline)
+                                            .foregroundStyle(Color.white)
+                                    }
+                                }
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.blue)
                                 .cornerRadius(12)
+                            }
+                            .disabled(isCompleting)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 100)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 100) // Increased padding for tab bar
                     }
                 }
             }
@@ -187,6 +222,50 @@ struct TodaysWorkoutView: View {
                 }
             } message: {
                 Text("This will end your current progress on \(program.title) and return you to the program list.")
+            }
+            .onAppear {
+                if isCompleted {
+                    showCompletionSuccess = true
+                }
+            }
+            .onChange(of: isCompleted) { completed in
+                if completed {
+                    showCompletionSuccess = true
+                }
+            }
+        }
+        
+        private func completeWorkout() {
+            guard let userId = diContainer.authenticationService.currentUserId,
+                  let programId = program.id,
+                  let dayId = day.id else {
+                return
+            }
+            
+            isCompleting = true
+            
+            Task {
+                do {
+                    try await diContainer.firestoreService.markDayCompleted(
+                        userId: userId,
+                        programId: programId,
+                        dayId: dayId,
+                        dayNumber: day.dayNumber,
+                        durationMinutes: day.duration
+                    )
+                    
+                    await MainActor.run {
+                        isCompleting = false
+                        withAnimation {
+                            showCompletionSuccess = true
+                        }
+                    }
+                } catch {
+                    print("Error completing workout: \(error)")
+                    await MainActor.run {
+                        isCompleting = false
+                    }
+                }
             }
         }
     }

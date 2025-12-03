@@ -217,12 +217,20 @@ class FirestoreService: ObservableObject {
                 return FirestoreUserProfile(
                     id: userId,
                     email: data["email"] as? String,
+                    firstName: nil,
+                    lastName: nil,
+                    dateOfBirth: nil,
+                    heightFeet: nil,
+                    heightInches: nil,
+                    weightPounds: nil,
+                    experienceLevel: data["experienceLevel"] as? String,
+                    goals: nil,
                     name: data["name"] as? String,
+                    goal: data["goal"] as? String,
                     currentProgramId: data["currentProgramId"] as? String,
                     currentDayNumber: data["currentDayNumber"] as? Int,
+                    lastCompletionDate: nil,
                     joinedDate: nil,
-                    experienceLevel: data["experienceLevel"] as? String,
-                    goal: data["goal"] as? String,
                     updatedAt: nil
                 )
             }
@@ -283,26 +291,76 @@ class FirestoreService: ObservableObject {
     }
 
     
-    /// Create or update user profile
-    func createUserProfile(userId: String, email: String, name: String?) async throws {
+    /// Create or update user profile with complete information
+    func createUserProfile(
+        userId: String,
+        email: String,
+        firstName: String?,
+        lastName: String?,
+        dateOfBirth: Date?,
+        heightFeet: Int?,
+        heightInches: Int?,
+        weightPounds: Int?,
+        experienceLevel: String?,
+        goals: [String]?
+    ) async throws {
         let userRef = db.collection("users").document(userId)
         
-        let profile: [String: Any] = [
+        var profile: [String: Any] = [
             "email": email,
-            "name": name ?? "",
             "joinedDate": FieldValue.serverTimestamp(),
-            "currentProgramId": NSNull(),
-            "currentDayNumber": 0
+            "currentDayNumber": 0,
+            "updatedAt": FieldValue.serverTimestamp()
         ]
         
+        // Add optional fields if provided
+        if let firstName = firstName {
+            profile["firstName"] = firstName
+        }
+        if let lastName = lastName {
+            profile["lastName"] = lastName
+        }
+        if let dob = dateOfBirth {
+            profile["dateOfBirth"] = Timestamp(date: dob)
+        }
+        if let feet = heightFeet {
+            profile["heightFeet"] = feet
+        }
+        if let inches = heightInches {
+            profile["heightInches"] = inches
+        }
+        if let weight = weightPounds {
+            profile["weightPounds"] = weight
+        }
+        if let experience = experienceLevel {
+            profile["experienceLevel"] = experience
+        }
+        if let goals = goals, !goals.isEmpty {
+            profile["goals"] = goals
+        }
+        
+        // Set currentProgramId to null initially
+        profile["currentProgramId"] = NSNull()
+        
         try await userRef.setData(profile, merge: false)
+        print("✅ Created user profile with complete data")
     }
     
-    /// Update user profile fields (e.g., to clear current program)
+    
+    /// Update user profile fields - comprehensive version
     func updateUserProfile(
         userId: String,
-        currentProgramId: String?,
-        currentDayNumber: Int?
+        firstName: String? = nil,
+        lastName: String? = nil,
+        dateOfBirth: Date? = nil,
+        heightFeet: Int? = nil,
+        heightInches: Int? = nil,
+        weightPounds: Int? = nil,
+        experienceLevel: String? = nil,
+        goals: [String]? = nil,
+        currentProgramId: String? = nil,
+        currentDayNumber: Int? = nil,
+        lastCompletionDate: Date? = nil
     ) async throws {
         let userRef = db.collection("users").document(userId)
         
@@ -310,20 +368,121 @@ class FirestoreService: ObservableObject {
             "updatedAt": FieldValue.serverTimestamp()
         ]
         
+        // Update optional fields if provided
+        if let firstName = firstName {
+            updates["firstName"] = firstName
+        }
+        if let lastName = lastName {
+            updates["lastName"] = lastName
+        }
+        if let dob = dateOfBirth {
+            updates["dateOfBirth"] = Timestamp(date: dob)
+        }
+        if let feet = heightFeet {
+            updates["heightFeet"] = feet
+        }
+        if let inches = heightInches {
+            updates["heightInches"] = inches
+        }
+        if let weight = weightPounds {
+            updates["weightPounds"] = weight
+        }
+        if let experience = experienceLevel {
+            updates["experienceLevel"] = experience
+        }
+        if let goals = goals {
+            updates["goals"] = goals
+        }
         if let programId = currentProgramId {
             updates["currentProgramId"] = programId
-        } else {
-            updates["currentProgramId"] = FieldValue.delete()
         }
-        
         if let dayNumber = currentDayNumber {
             updates["currentDayNumber"] = dayNumber
-        } else {
-            updates["currentDayNumber"] = FieldValue.delete()
+        }
+        if let completionDate = lastCompletionDate {
+            updates["lastCompletionDate"] = Timestamp(date: completionDate)
         }
         
         try await userRef.updateData(updates)
         print("✅ Updated user profile")
+    }
+    
+    // MARK: - Day Completion Tracking
+    
+    /// Mark a day as completed
+    func markDayCompleted(
+        userId: String,
+        programId: String,
+        dayId: String,
+        dayNumber: Int,
+        durationMinutes: Int? = nil
+    ) async throws {
+        let completionRef = db.collection("users")
+            .document(userId)
+            .collection("completions")
+            .document() // Auto-generate ID
+        
+        let completion = FirestoreDayCompletion(
+            id: completionRef.documentID,
+            programId: programId,
+            dayId: dayId,
+            dayNumber: dayNumber,
+            completedAt: Date(),
+            durationMinutes: durationMinutes
+        )
+        
+        try completionRef.setData(from: completion)
+        
+        // Update user profile with last completion date and advance day number
+        try await updateUserProfile(
+            userId: userId,
+            currentDayNumber: dayNumber + 1,
+            lastCompletionDate: Date()
+        )
+        
+        print("✅ Marked day \(dayNumber) as completed")
+    }
+    
+    /// Get day completions for a program
+    func getDayCompletions(userId: String, programId: String) async throws -> [FirestoreDayCompletion] {
+        let snapshot = try await db.collection("users")
+            .document(userId)
+            .collection("completions")
+            .whereField("programId", isEqualTo: programId)
+            .order(by: "completedAt", descending: true)
+            .getDocuments()
+        
+        return snapshot.documents.compactMap { doc in
+            try? doc.data(as: FirestoreDayCompletion.self)
+        }
+    }
+    
+    /// Check if a day was completed today
+    func wasDayCompletedToday(userId: String, programId: String) async throws -> Bool {
+        guard let profile = try await loadUserProfile(userId: userId),
+              let lastCompletion = profile.lastCompletionDate else {
+            return false
+        }
+        
+        let calendar = Calendar.current
+        return calendar.isDateInToday(lastCompletion)
+    }
+    
+    /// Get next available day for user (respects calendar-based progression)
+    func getNextAvailableDay(userId: String, programId: String) async throws -> Int {
+        guard let profile = try await loadUserProfile(userId: userId) else {
+            return 1 // Start at day 1 if no profile
+        }
+        
+        let currentDay = profile.currentDayNumber ?? 1
+        
+        // Check if user completed a day today
+        if try await wasDayCompletedToday(userId: userId, programId: programId) {
+            // Already completed today, must wait for next calendar day
+            return currentDay - 1 // Show the day they just completed
+        }
+        
+        return currentDay
     }
     
     // MARK: - Progress Tracking
