@@ -31,6 +31,7 @@ struct ZPFitApp: App {
                 .environment(\.diContainer, DIContainer.shared)
                 .environmentObject(DIContainer.shared.subscriptionService)
                 .environmentObject(DIContainer.shared.authenticationService)
+                .environmentObject(DIContainer.shared.firestoreService)
                 .modelContainer(DIContainer.shared.persistenceService.container)
                 .preferredColorScheme(.dark) // Force dark mode for premium feel
         }

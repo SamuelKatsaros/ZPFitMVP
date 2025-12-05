@@ -212,6 +212,21 @@ struct FirestoreUserProfile: Codable {
         return "\(weight) lbs"
     }
     
+    /// Check if the user has completed their profile with all essential information
+    /// A complete profile must have at least firstName and (lastName or name)
+    var isProfileComplete: Bool {
+        // Must have firstName
+        guard let firstName = firstName, !firstName.isEmpty else {
+            return false
+        }
+        
+        // Must have either lastName or legacy name field
+        let hasLastName = lastName != nil && !(lastName?.isEmpty ?? true)
+        let hasLegacyName = name != nil && !(name?.isEmpty ?? true)
+        
+        return hasLastName || hasLegacyName
+    }
+    
     enum CodingKeys: String, CodingKey {
         case id
         case email

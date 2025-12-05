@@ -5,7 +5,9 @@ struct MainTabView: View {
     @State private var selectedTab: Tab = .home
     @AppStorage("selectedPlan") private var selectedPlan: String?
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.diContainer) private var diContainer
     @Query private var programs: [Program]
+    @State private var hasLoadedSessions = false
     
     enum Tab: String, CaseIterable {
         case home = "Home"
@@ -86,6 +88,15 @@ struct MainTabView: View {
             .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
         }
         .ignoresSafeArea(.keyboard)
+        .onAppear {
+            // Load sessions once when entering the app
+            // This replaces the automatic loading in AuthService to improve onboarding performance
+            if !hasLoadedSessions {
+                print("📱 MainTabView: Loading sessions on first appearance")
+                diContainer.firestoreService.loadSessions()
+                hasLoadedSessions = true
+            }
+        }
     }
     
     @Namespace private var namespace

@@ -15,7 +15,7 @@ struct ProgramsTabView: View {
                         .tint(.white)
                 }
             } else if hasProgram {
-                TodaysWorkoutView()
+                ActiveProgramView()
             } else {
                 ProgramListView()
             }

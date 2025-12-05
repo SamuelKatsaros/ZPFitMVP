@@ -36,11 +36,14 @@ class AuthenticationService: ObservableObject {
                 // Load user data when authenticated
                 if let userId = user?.uid {
                     await self?.firestoreService.loadUserData(userId: userId)
+                    
+                    // NOTE: We allow users with incomplete profiles to remain authenticated
+                    // ContentView will route them to onboarding to complete their profile
+                    // This handles the edge case where users create an account but exit before completing onboarding
                 }
                 
-                // Load sessions for Quick Workouts section (available to all users)
-                print("📱 Calling loadSessions() from AuthService")
-                self?.firestoreService.loadSessions()
+                // NOTE: Sessions are now loaded in MainTabView to avoid loading during onboarding
+                // This significantly improves performance during signup flow
             }
         }
     }
@@ -102,6 +105,9 @@ class AuthenticationService: ObservableObject {
             isAuthenticated = false
             authError = nil
             firestoreService.clearUserData()
+            
+            // Clear onboarding flag to force re-authentication
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
         } catch {
             authError = "Failed to sign out: \(error.localizedDescription)"
             throw error
@@ -155,6 +161,56 @@ class AuthenticationService: ObservableObject {
             return "This account has been disabled."
         default:
             return "Authentication error: \(error.localizedDescription)"
+        }
+    }
+    
+    // MARK: - Email Availability
+    
+    /// Check if an email is already registered
+    /// Returns true if email is available (not registered), false if already in use
+    func checkEmailAvailability(_ email: String) async -> Bool {
+        // First validate email format
+        guard isEmailValid(email) else {
+            return true // Invalid emails are "available" (won't show "already registered")
+        }
+        
+        do {
+            // Attempt to sign in with a dummy password
+            // This will fail, but the error code tells us if the email exists
+            _ = try await Auth.auth().signIn(withEmail: email, password: "dummy_password_check_\(UUID().uuidString)")
+            
+            // If sign-in somehow succeeds (shouldn't happen), email exists
+            return false
+            
+        } catch {
+            let nsError = error as NSError
+            
+            // Check if this is a Firebase Auth error
+            guard nsError.domain == AuthErrorDomain,
+                  let errorCode = AuthErrorCode(_bridgedNSError: nsError) else {
+                // Network error or other issue - assume available to avoid blocking users
+                print("⚠️ Non-Auth error during email check: \(error.localizedDescription)")
+                return true
+            }
+            
+            switch errorCode.code {
+            case .userNotFound:
+                // Email doesn't exist - available!
+                return true
+                
+            case .wrongPassword:
+                // Email exists but password was wrong - unavailable
+                return false
+                
+            case .invalidEmail:
+                // Invalid email format - treat as available
+                return true
+                
+            default:
+                // Other errors (network, etc.) - assume available to avoid false positives
+                print("⚠️ Unknown auth error during email check: \(errorCode.code)")
+                return true
+            }
         }
     }
     

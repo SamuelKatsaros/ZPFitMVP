@@ -12,6 +12,7 @@ class FirestoreService: ObservableObject {
     @Published var currentProgramDays: [FirestoreProgramDay] = []
     @Published var userProgress: [String: FirestoreUserProgress] = [:] // dayId -> progress
     @Published var sessions: [FirestoreSession] = []
+    @Published var isProfileComplete: Bool = false
     
     private var programsListener: ListenerRegistration?
     private var daysListener: ListenerRegistration?
@@ -249,6 +250,7 @@ class FirestoreService: ObservableObject {
             if let profile = try await loadUserProfile(userId: userId) {
                 await MainActor.run {
                     self.currentUserProfile = profile
+                    self.isProfileComplete = profile.isProfileComplete
                 }
                 
                 // Load user's current program if they have one
@@ -287,6 +289,7 @@ class FirestoreService: ObservableObject {
         currentProgram = nil
         currentProgramDays = []
         userProgress = [:]
+        isProfileComplete = false
         removeAllListeners()
     }
 
@@ -431,7 +434,7 @@ class FirestoreService: ObservableObject {
             durationMinutes: durationMinutes
         )
         
-        try completionRef.setData(from: completion)
+        try await completionRef.setData(from: completion)
         
         // Update user profile with last completion date and advance day number
         try await updateUserProfile(

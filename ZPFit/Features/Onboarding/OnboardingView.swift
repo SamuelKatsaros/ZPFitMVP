@@ -33,7 +33,12 @@ struct OnboardingView: View {
                             case 0:
                                 WelcomeStep(action: viewModel.nextStep)
                             case 1:
-                                EmailPasswordStep(viewModel: viewModel)
+                                // Skip email/password for existing users, show name instead
+                                if viewModel.isExistingUser {
+                                    NameStep(viewModel: viewModel)
+                                } else {
+                                    EmailPasswordStep(viewModel: viewModel)
+                                }
                             case 2:
                                 NameStep(viewModel: viewModel)
                             case 3:
@@ -137,13 +142,38 @@ struct EmailPasswordStep: View {
                 .foregroundStyle(Color.ZP.textSecondary)
             
             VStack(spacing: 16) {
-                CustomTextField(
-                    icon: "envelope.fill",
-                    placeholder: "Email",
-                    text: $viewModel.email,
-                    keyboardType: .emailAddress,
-                    autocapitalization: .never
-                )
+                // Email field with validation feedback
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        CustomTextField(
+                            icon: "envelope.fill",
+                            placeholder: "Email",
+                            text: $viewModel.email,
+                            keyboardType: .emailAddress,
+                            autocapitalization: .never
+                        )
+                        
+                        // Email availability indicator
+                        if viewModel.isCheckingEmail {
+                            ProgressView()
+                                .tint(Color.ZP.primary)
+                                .padding(.trailing, 8)
+                        } else if let available = viewModel.emailAvailable {
+                            Image(systemName: available ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(available ? Color.green : Color.ZP.error)
+                                .font(.title3)
+                                .padding(.trailing, 8)
+                        }
+                    }
+                    
+                    // Email error message
+                    if let error = viewModel.emailCheckError {
+                        Text(error)
+                            .font(.ZP.caption)
+                            .foregroundStyle(Color.ZP.error)
+                            .padding(.leading, 4)
+                    }
+                }
                 
                 CustomTextField(
                     icon: "lock.fill",
