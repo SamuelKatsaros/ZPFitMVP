@@ -306,3 +306,121 @@ struct FirestoreSession: Codable, Identifiable {
     }
 }
 
+// MARK: - Firestore Run
+struct FirestoreRun: Codable, Identifiable {
+    @DocumentID var id: String?
+    var distance: Double           // meters (stored in metric)
+    var duration: Int              // seconds
+    var averagePace: Double        // seconds per mile (US locale)
+    var startedAt: Date
+    var endedAt: Date
+    var route: [RoutePoint]        // GPS coordinate points
+    var splits: [Double]?          // split times per mile in seconds
+    var elevationGain: Double?     // total elevation gain in feet
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case distance
+        case duration
+        case averagePace
+        case startedAt
+        case endedAt
+        case route
+        case splits
+        case elevationGain
+    }
+    
+    // MARK: - Computed Properties (Miles)
+    
+    /// Distance in miles
+    var distanceMiles: Double {
+        distance / 1609.344
+    }
+    
+    /// Average pace in seconds per mile
+    var averagePaceMiles: Double {
+        guard distanceMiles > 0 else { return 0 }
+        return Double(duration) / distanceMiles
+    }
+    
+    /// Estimated calories burned (rough estimate: ~100 cal/mile)
+    var caloriesBurned: Int {
+        Int(distanceMiles * 100)
+    }
+    
+    // MARK: - Formatted Properties for Display (US Miles)
+    
+    var distanceFormatted: String {
+        if distanceMiles < 0.1 {
+            // Show in feet for very short distances
+            let feet = distance * 3.28084
+            return String(format: "%.0f ft", feet)
+        }
+        return String(format: "%.2f mi", distanceMiles)
+    }
+    
+    var distanceFormattedShort: String {
+        String(format: "%.2f", distanceMiles)
+    }
+    
+    var durationFormatted: String {
+        let hours = duration / 3600
+        let minutes = (duration % 3600) / 60
+        let seconds = duration % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
+    
+    var paceFormatted: String {
+        let paceSeconds = averagePaceMiles
+        guard paceSeconds > 0 && paceSeconds.isFinite && paceSeconds < 3600 else {
+            return "--:-- /mi"
+        }
+        let minutes = Int(paceSeconds) / 60
+        let seconds = Int(paceSeconds) % 60
+        return String(format: "%d'%02d\" /mi", minutes, seconds)
+    }
+    
+    var paceFormattedShort: String {
+        let paceSeconds = averagePaceMiles
+        guard paceSeconds > 0 && paceSeconds.isFinite && paceSeconds < 3600 else {
+            return "--:--"
+        }
+        let minutes = Int(paceSeconds) / 60
+        let seconds = Int(paceSeconds) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    var elevationFormatted: String {
+        guard let elevation = elevationGain else { return "-- ft" }
+        return String(format: "%.0f ft", elevation)
+    }
+    
+    /// Format a split time (seconds) to mm:ss
+    static func formatSplit(_ seconds: Double) -> String {
+        guard seconds > 0 && seconds.isFinite else { return "--:--" }
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
+    }
+}
+
+// MARK: - Route Point
+struct RoutePoint: Codable {
+    var latitude: Double
+    var longitude: Double
+    var timestamp: Date
+    var altitude: Double?
+    
+    enum CodingKeys: String, CodingKey {
+        case latitude
+        case longitude
+        case timestamp
+        case altitude
+    }
+}
+

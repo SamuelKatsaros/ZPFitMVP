@@ -17,6 +17,9 @@ class DIContainer: ObservableObject {
     let firestoreService: FirestoreService
     let cloudflareStreamService: CloudflareStreamService
     
+    // Location Services
+    let locationService: LocationService
+    
     init() {
         // Ensure Firebase is configured before initializing any Firebase services
         if FirebaseApp.app() == nil {
@@ -27,6 +30,9 @@ class DIContainer: ObservableObject {
         self.firestoreService = FirestoreService()
         self.authenticationService = AuthenticationService(firestoreService: firestoreService)
         self.cloudflareStreamService = CloudflareStreamService()
+        
+        // Initialize location services
+        self.locationService = LocationService()
         
         // Initialize legacy services (for gradual migration)
         self.persistenceService = PersistenceService()

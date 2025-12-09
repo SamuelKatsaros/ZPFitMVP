@@ -16,6 +16,13 @@ extension Color {
         static let error = Color(hex: "FF453A")
         static let success = Color(hex: "30D158")
         
+        // Run-specific colors (Strava-like)
+        static let runOrange = Color(hex: "FC5200") // Strava orange
+        static let liveIndicator = Color(hex: "FF3B30") // Pulsing red for live tracking
+        static let runBlue = Color(hex: "007AFF") // iOS blue for current location
+        static let splitFast = Color(hex: "34C759") // Green for fast splits
+        static let splitSlow = Color(hex: "FF9500") // Orange for slow splits
+        
         // Text
         static let textPrimary = Color.white
         static let textSecondary = Color(hex: "8E8E93") // Standard iOS Gray

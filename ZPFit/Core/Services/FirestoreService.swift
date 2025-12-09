@@ -12,12 +12,14 @@ class FirestoreService: ObservableObject {
     @Published var currentProgramDays: [FirestoreProgramDay] = []
     @Published var userProgress: [String: FirestoreUserProgress] = [:] // dayId -> progress
     @Published var sessions: [FirestoreSession] = []
+    @Published var runs: [FirestoreRun] = []
     @Published var isProfileComplete: Bool = false
     
     private var programsListener: ListenerRegistration?
     private var daysListener: ListenerRegistration?
     private var progressListener: ListenerRegistration?
     private var sessionsListener: ListenerRegistration?
+    private var runsListener: ListenerRegistration?
     
     init() {
         configureFirestore()
@@ -28,6 +30,7 @@ class FirestoreService: ObservableObject {
         daysListener?.remove()
         progressListener?.remove()
         sessionsListener?.remove()
+        runsListener?.remove()
     }
     
     // MARK: - Configuration
@@ -600,6 +603,84 @@ class FirestoreService: ObservableObject {
             }
     }
     
+    // MARK: - Runs
+    
+    /// Save a completed run to Firestore
+    func saveRun(userId: String, run: FirestoreRun) async throws {
+        print("🏃 FirestoreService: Saving run for user \(userId)")
+        
+        let runRef = db.collection("users")
+            .document(userId)
+            .collection("runs")
+            .document()
+        
+        try runRef.setData(from: run)
+        print("✅ Successfully saved run with ID: \(runRef.documentID)")
+    }
+    
+    /// Load user's runs with real-time updates
+    func loadRuns(userId: String) {
+        print("🔥 FirestoreService: loadRuns() called for user \(userId)")
+        runsListener?.remove()
+        
+        runsListener = db.collection("users")
+            .document(userId)
+            .collection("runs")
+            .order(by: "startedAt", descending: true)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("❌ Error loading runs: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    print("⚠️ No snapshot documents for runs")
+                    return
+                }
+                
+                print("📦 Found \(documents.count) documents in runs collection")
+                
+                Task { @MainActor in
+                    let runs = documents.compactMap { doc -> FirestoreRun? in
+                        do {
+                            let run = try doc.data(as: FirestoreRun.self)
+                            print("✅ Loaded run: \(run.distanceFormatted) on \(run.startedAt)")
+                            return run
+                        } catch {
+                            print("❌ Failed to decode run from doc \(doc.documentID): \(error)")
+                            return nil
+                        }
+                    }
+                    
+                    self.runs = runs
+                    print("🎯 Total runs loaded: \(self.runs.count)")
+                }
+            }
+    }
+    
+    /// Get a specific run by ID
+    func getRun(userId: String, runId: String) async throws -> FirestoreRun? {
+        let document = try await db.collection("users")
+            .document(userId)
+            .collection("runs")
+            .document(runId)
+            .getDocument()
+        
+        return try? document.data(as: FirestoreRun.self)
+    }
+    
+    /// Delete a run
+    func deleteRun(userId: String, runId: String) async throws {
+        try await db.collection("users")
+            .document(userId)
+            .collection("runs")
+            .document(runId)
+            .delete()
+        print("🗑️ Deleted run: \(runId)")
+    }
+    
     // MARK: - Helper Methods
     
     /// Remove all listeners
@@ -608,6 +689,7 @@ class FirestoreService: ObservableObject {
         daysListener?.remove()
         progressListener?.remove()
         sessionsListener?.remove()
+        runsListener?.remove()
     }
 }
 

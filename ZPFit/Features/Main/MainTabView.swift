@@ -12,15 +12,15 @@ struct MainTabView: View {
     enum Tab: String, CaseIterable {
         case home = "Home"
         case programs = "Explore"
-        // case progress = "Progress" // Removed Progress tab
+        case runs = "Runs"
         case calendar = "Stats"
         case profile = "Profile"
         
         var icon: String {
             switch self {
             case .home: return "house.fill"
-            case .programs: return "figure.run"
-            // case .progress: return "chart.bar.fill" // Removed Progress tab icon
+            case .programs: return "dumbbell.fill"
+            case .runs: return "figure.run.circle"
             case .calendar: return "chart.bar.fill"
             case .profile: return "person.fill"
             }
@@ -35,7 +35,9 @@ struct MainTabView: View {
                 case .home:
                     HomeView(selectedTab: $selectedTab)
                 case .programs:
-                    ProgramsTabView()  // NEW: Wrapper that shows workout or list
+                    ProgramsTabView()
+                case .runs:
+                    RunHistoryView()
                 case .calendar:
                     CalendarView()
                 case .profile:
