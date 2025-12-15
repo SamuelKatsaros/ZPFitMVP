@@ -9,21 +9,18 @@ import SwiftUI
 import SwiftData
 import FirebaseCore
 
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        FirebaseApp.configure()
+        return true
+    }
+}
+
 @main
 struct ZPFitApp: App {
-    
-    // Configure Firebase at the very start, before anything else
-    init() {
-        setupFirebase()
-    }
-    
-    // Static setup to ensure Firebase is configured before DIContainer
-    private func setupFirebase() {
-        // Only configure once
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-        }
-    }
+    // register app delegate for Firebase setup
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
     var body: some Scene {
         WindowGroup {

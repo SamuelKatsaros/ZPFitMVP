@@ -126,11 +126,25 @@ extension LocationService: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         
-        // Filter out inaccurate locations
-        guard location.horizontalAccuracy >= 0 && location.horizontalAccuracy < 50 else {
-            print("📍 LocationService: Filtered out inaccurate location (accuracy: \(location.horizontalAccuracy)m)")
+        // Filter out invalid locations (negative accuracy means invalid)
+        guard location.horizontalAccuracy >= 0 else {
+            print("📍 LocationService: Filtered out invalid location (negative accuracy)")
             return
         }
+        
+        // Accept locations with < 100m accuracy (outdoor GPS is often 50-100m)
+        guard location.horizontalAccuracy < 100 else {
+            print("📍 LocationService: Filtered out low-accuracy location (\(location.horizontalAccuracy)m)")
+            return
+        }
+        
+        // Filter stale cached locations (older than 10 seconds)
+        guard abs(location.timestamp.timeIntervalSinceNow) < 10 else {
+            print("📍 LocationService: Filtered out stale location (age: \(abs(location.timestamp.timeIntervalSinceNow))s)")
+            return
+        }
+        
+        print("📍 LocationService: ✅ Accepting location (accuracy: \(String(format: "%.1f", location.horizontalAccuracy))m, age: \(String(format: "%.1f", abs(location.timestamp.timeIntervalSinceNow)))s)")
         
         Task { @MainActor in
             self.currentLocation = location

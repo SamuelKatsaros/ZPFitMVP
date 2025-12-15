@@ -21,11 +21,6 @@ class DIContainer: ObservableObject {
     let locationService: LocationService
     
     init() {
-        // Ensure Firebase is configured before initializing any Firebase services
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-        }
-        
         // Initialize Firebase services - order matters for dependencies
         self.firestoreService = FirestoreService()
         self.authenticationService = AuthenticationService(firestoreService: firestoreService)

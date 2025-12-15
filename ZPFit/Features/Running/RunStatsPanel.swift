@@ -1,76 +1,102 @@
 import SwiftUI
 
-/// Floating stats panel overlay for active run tracking
+/// Floating stats panel overlay for active run tracking - Clean design
 struct RunStatsPanel: View {
     @ObservedObject var viewModel: RunTrackingViewModel
     let isExpanded: Bool
     let onToggleExpand: () -> Void
     
+    @State private var pulsePace = false
+    
     var body: some View {
         VStack(spacing: 0) {
             // Drag handle
             Capsule()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 40, height: 4)
+                .fill(Color.white.opacity(0.4))
+                .frame(width: 36, height: 5)
                 .padding(.top, 12)
                 .padding(.bottom, 16)
             
-            // Primary stat - Duration
-            RunPrimaryStat(
-                value: viewModel.elapsedTimeFormatted,
-                unit: nil,
-                label: "Duration"
-            )
-            .padding(.bottom, 20)
+            // Primary stat - Duration (large)
+            VStack(spacing: 4) {
+                Text(viewModel.elapsedTimeFormatted)
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .animation(.spring(response: 0.3), value: viewModel.elapsedTimeFormatted)
+                
+                Text("DURATION")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.6))
+                    .tracking(1.5)
+            }
+            .padding(.bottom, 24)
             
             // Secondary stats row
             HStack(spacing: 0) {
                 // Distance
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text(viewModel.distanceFormatted)
-                            .font(.ZP.runStat)
-                            .foregroundStyle(Color.ZP.textPrimary)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
                             .monospacedDigit()
                             .contentTransition(.numericText())
+                            .animation(.spring(response: 0.3), value: viewModel.distanceFormatted)
                         
                         Text("mi")
-                            .font(.ZP.runStatLabel)
-                            .foregroundStyle(Color.ZP.textSecondary)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.6))
                     }
                     
-                    Text("Distance")
-                        .font(.ZP.runStatLabel)
-                        .foregroundStyle(Color.ZP.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.5)
+                    Text("DISTANCE")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.5))
+                        .tracking(1)
                 }
                 .frame(maxWidth: .infinity)
                 
                 // Divider
                 Rectangle()
-                    .fill(Color.white.opacity(0.1))
+                    .fill(Color.white.opacity(0.15))
                     .frame(width: 1, height: 50)
                 
-                // Pace
-                VStack(spacing: 4) {
+                // Pace with live indicator
+                VStack(spacing: 6) {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text(viewModel.paceFormatted)
-                            .font(.ZP.runStat)
-                            .foregroundStyle(Color.ZP.textPrimary)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(viewModel.paceFormatted == "--:--" ? Color.white.opacity(0.4) : .white)
                             .monospacedDigit()
                             .contentTransition(.numericText())
+                            .animation(.spring(response: 0.3), value: viewModel.paceFormatted)
                         
                         Text("/mi")
-                            .font(.ZP.runStatLabel)
-                            .foregroundStyle(Color.ZP.textSecondary)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.6))
                     }
                     
-                    Text("Pace")
-                        .font(.ZP.runStatLabel)
-                        .foregroundStyle(Color.ZP.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.5)
+                    HStack(spacing: 4) {
+                        // Live indicator dot - only when moving
+                        if !viewModel.isStationary && viewModel.paceFormatted != "--:--" {
+                            Circle()
+                                .fill(Color.ZP.primary)
+                                .frame(width: 6, height: 6)
+                                .scaleEffect(pulsePace ? 1.3 : 1.0)
+                                .opacity(pulsePace ? 0.6 : 1.0)
+                        } else if viewModel.isStationary {
+                            // Show paused indicator when stationary
+                            Image(systemName: "pause.fill")
+                                .font(.system(size: 8))
+                                .foregroundStyle(Color.white.opacity(0.4))
+                        }
+                        
+                        Text("PACE")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.5))
+                            .tracking(1)
+                    }
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -89,8 +115,16 @@ struct RunStatsPanel: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 32)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
+                .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
         )
         .gesture(
             DragGesture()
@@ -106,86 +140,85 @@ struct RunStatsPanel: View {
                     }
                 }
         )
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1).repeatForever(autoreverses: true)) {
+                pulsePace = true
+            }
+        }
     }
     
     private var expandedContent: some View {
         VStack(spacing: 16) {
-            Divider()
-                .background(Color.white.opacity(0.1))
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(height: 1)
+                .padding(.horizontal, -24)
             
             // Additional stats row
             HStack(spacing: 0) {
                 // Elevation
-                VStack(spacing: 4) {
-                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                VStack(spacing: 6) {
+                    HStack(alignment: .lastTextBaseline, spacing: 3) {
                         Image(systemName: "arrow.up.right")
-                            .font(.caption)
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Color.ZP.textSecondary)
                         
                         Text(viewModel.elevationFormatted)
-                            .font(.ZP.runStatSecondary)
-                            .foregroundStyle(Color.ZP.textPrimary)
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
                             .monospacedDigit()
                         
                         Text("ft")
-                            .font(.ZP.runStatLabel)
-                            .foregroundStyle(Color.ZP.textSecondary)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.6))
                     }
                     
-                    Text("Elevation")
-                        .font(.ZP.runStatLabel)
-                        .foregroundStyle(Color.ZP.textSecondary)
+                    Text("ELEVATION")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.5))
+                        .tracking(1)
                 }
                 .frame(maxWidth: .infinity)
                 
-                // Current Mile
-                VStack(spacing: 4) {
+                // Current Mile - just show the number, no progress bar
+                VStack(spacing: 6) {
                     Text("Mile \(viewModel.currentMileNumber)")
-                        .font(.ZP.runStatSecondary)
-                        .foregroundStyle(Color.ZP.textPrimary)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
                     
-                    // Progress bar for current mile
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.white.opacity(0.1))
-                                .frame(height: 4)
-                            
-                            Capsule()
-                                .fill(Color.ZP.primary)
-                                .frame(width: geometry.size.width * viewModel.currentSplitProgress, height: 4)
-                        }
-                    }
-                    .frame(height: 4)
-                    .padding(.horizontal, 20)
+                    Text("CURRENT")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.5))
+                        .tracking(1)
                 }
                 .frame(maxWidth: .infinity)
             }
             
             // Splits section (if any)
             if !viewModel.splits.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Splits")
-                        .font(.ZP.headline)
-                        .foregroundStyle(Color.ZP.textSecondary)
-                        .padding(.leading, 4)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("MILE SPLITS")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.white.opacity(0.5))
+                        .tracking(1)
                     
                     ForEach(Array(viewModel.splits.enumerated()), id: \.offset) { index, split in
                         HStack {
                             Text("Mile \(index + 1)")
-                                .font(.ZP.caption)
-                                .foregroundStyle(Color.ZP.textSecondary)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color.white.opacity(0.7))
                             
                             Spacer()
                             
                             Text(formatSplit(split))
-                                .font(.ZP.runSplit)
-                                .foregroundStyle(Color.ZP.textPrimary)
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
                                 .monospacedDigit()
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 2)
                     }
                 }
+                .padding(.top, 8)
             }
         }
     }

@@ -9,6 +9,12 @@ struct LoginView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @FocusState private var focusedField: Field?
+    
+    enum Field: Hashable {
+        case email
+        case password
+    }
     
     var body: some View {
         ZStack {
@@ -36,14 +42,24 @@ struct LoginView: View {
                         placeholder: "Email",
                         text: $email,
                         keyboardType: .emailAddress,
-                        autocapitalization: .never
+                        autocapitalization: .never,
+                        textContentType: .emailAddress,
+                        focusedField: $focusedField,
+                        field: .email,
+                        submitLabel: .next,
+                        onSubmit: { focusedField = .password }
                     )
                     
                     CustomTextField(
                         icon: "lock.fill",
                         placeholder: "Password",
                         text: $password,
-                        isSecure: true
+                        isSecure: true,
+                        textContentType: .password,
+                        focusedField: $focusedField,
+                        field: .password,
+                        submitLabel: .go,
+                        onSubmit: handleLogin
                     )
                 }
                 .padding(.horizontal, 40)

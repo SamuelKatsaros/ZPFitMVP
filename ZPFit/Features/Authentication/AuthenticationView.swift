@@ -10,6 +10,14 @@ struct AuthenticationView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @FocusState private var focusedField: Field?
+    
+    enum Field: Hashable {
+        case name
+        case email
+        case password
+        case confirmPassword
+    }
     
     var body: some View {
         ZStack {
@@ -38,7 +46,11 @@ struct AuthenticationView: View {
                             CustomTextField(
                                 icon: "person.fill",
                                 placeholder: "Full Name",
-                                text: $name
+                                text: $name,
+                                focusedField: $focusedField,
+                                field: .name,
+                                submitLabel: .next,
+                                onSubmit: { focusedField = .email }
                             )
                         }
                         
@@ -48,7 +60,12 @@ struct AuthenticationView: View {
                             placeholder: "Email",
                             text: $email,
                             keyboardType: .emailAddress,
-                            autocapitalization: .never
+                            autocapitalization: .never,
+                            textContentType: .emailAddress,
+                            focusedField: $focusedField,
+                            field: .email,
+                            submitLabel: .next,
+                            onSubmit: { focusedField = .password }
                         )
                         
                         // Password Field
@@ -56,7 +73,18 @@ struct AuthenticationView: View {
                             icon: "lock.fill",
                             placeholder: "Password",
                             text: $password,
-                            isSecure: true
+                            isSecure: true,
+                            textContentType: isSignUp ? .newPassword : .password,
+                            focusedField: $focusedField,
+                            field: .password,
+                            submitLabel: isSignUp ? .next : .done,
+                            onSubmit: {
+                                if isSignUp {
+                                    focusedField = .confirmPassword
+                                } else {
+                                    handleSubmit()
+                                }
+                            }
                         )
                         
                         if isSignUp {
@@ -65,7 +93,12 @@ struct AuthenticationView: View {
                                 icon: "lock.fill",
                                 placeholder: "Confirm Password",
                                 text: $confirmPassword,
-                                isSecure: true
+                                isSecure: true,
+                                textContentType: .newPassword,
+                                focusedField: $focusedField,
+                                field: .confirmPassword,
+                                submitLabel: .done,
+                                onSubmit: handleSubmit
                             )
                         }
                     }
@@ -206,13 +239,18 @@ struct AuthenticationView: View {
 
 // MARK: - Custom TextField
 
-struct CustomTextField: View {
+struct CustomTextField<FocusField: Hashable>: View {
     let icon: String
     let placeholder: String
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
     var autocapitalization: TextInputAutocapitalization = .words
     var isSecure: Bool = false
+    var textContentType: UITextContentType?
+    var focusedField: FocusState<FocusField?>.Binding
+    var field: FocusField?
+    var submitLabel: SubmitLabel = .done
+    var onSubmit: (() -> Void)?
     
     var body: some View {
         HStack(spacing: 16) {
@@ -225,12 +263,22 @@ struct CustomTextField: View {
                     .font(.ZP.body)
                     .foregroundStyle(Color.ZP.textPrimary)
                     .textInputAutocapitalization(autocapitalization)
+                    .textContentType(textContentType)
+                    .focused(focusedField, equals: field)
+                    .submitLabel(submitLabel)
+                    .onSubmit { onSubmit?() }
+                    .autocorrectionDisabled()
             } else {
                 TextField(placeholder, text: $text)
                     .font(.ZP.body)
                     .foregroundStyle(Color.ZP.textPrimary)
                     .keyboardType(keyboardType)
                     .textInputAutocapitalization(autocapitalization)
+                    .textContentType(textContentType)
+                    .focused(focusedField, equals: field)
+                    .submitLabel(submitLabel)
+                    .onSubmit { onSubmit?() }
+                    .autocorrectionDisabled()
             }
         }
         .padding(20)

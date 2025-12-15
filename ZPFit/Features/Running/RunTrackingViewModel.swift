@@ -10,8 +10,16 @@ enum RunState {
     case finished
 }
 
+/// Represents a location sample with timestamp for pace calculation
+private struct LocationSample {
+    let location: CLLocation
+    let cumulativeDistance: Double // meters
+    let timestamp: Date
+}
+
 /// ViewModel for managing run tracking state, timer, distance, and pace calculations
 /// Uses miles for US locale (1 mile = 1609.344 meters)
+/// Pace calculation uses actual GPS timestamps like Strava
 @MainActor
 class RunTrackingViewModel: ObservableObject {
     
@@ -19,6 +27,11 @@ class RunTrackingViewModel: ObservableObject {
     
     private static let metersPerMile: Double = 1609.344
     private static let feetPerMeter: Double = 3.28084
+    
+    // Speed thresholds (meters per second)
+    private static let stationarySpeedThreshold: Double = 0.3 // ~0.7 mph - below this = stationary
+    private static let walkingSpeedMin: Double = 0.8 // ~1.8 mph - minimum for valid movement
+    private static let maxRealisticSpeed: Double = 12.0 // ~27 mph - maximum realistic running speed
     
     // MARK: - Published Properties
     
@@ -35,6 +48,7 @@ class RunTrackingViewModel: ObservableObject {
     @Published var splits: [Double] = [] // split times in seconds per mile
     @Published var currentSplitDistance: Double = 0 // meters into current mile
     @Published var currentSplitTime: TimeInterval = 0 // time for current mile
+    @Published var isStationary: Bool = true // whether user is currently stationary
     
     // MARK: - Computed Properties (Display)
     
@@ -59,7 +73,12 @@ class RunTrackingViewModel: ObservableObject {
     }
     
     var paceFormatted: String {
+        // Only show pace if we have enough distance and are moving
         guard currentPace > 0 && currentPace.isFinite && currentPace < 3600 else {
+            return "--:--"
+        }
+        // Reasonable pace range: 4:00/mi (very fast) to 30:00/mi (slow walk)
+        guard currentPace >= 240 && currentPace <= 1800 else {
             return "--:--"
         }
         let minutes = Int(currentPace) / 60
@@ -98,10 +117,14 @@ class RunTrackingViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var pendingStartRun = false
     
-    // Rolling pace calculation for smoother updates
-    private var recentDistances: [Double] = []
-    private var recentTimes: [TimeInterval] = []
-    private let rollingWindowSize = 10
+    // Pace calculation - store recent location samples with timestamps
+    private var recentSamples: [LocationSample] = []
+    private let paceWindowSeconds: TimeInterval = 30 // Calculate pace over last 30 seconds
+    private var lastPaceUpdateTime: Date = Date()
+    
+    // Stationary detection
+    private var stationaryLocationBuffer: [CLLocation] = []
+    private let stationaryBufferSize = 5
     
     // MARK: - Initialization
     
@@ -154,8 +177,10 @@ class RunTrackingViewModel: ObservableObject {
         currentSplitDistance = 0
         currentSplitTime = 0
         splitStartTime = 0
-        recentDistances = []
-        recentTimes = []
+        recentSamples = []
+        stationaryLocationBuffer = []
+        isStationary = true
+        lastPaceUpdateTime = Date()
         
         // Start tracking
         startTime = Date()
@@ -195,6 +220,10 @@ class RunTrackingViewModel: ObservableObject {
         }
         pauseStartTime = nil
         
+        // Clear samples buffer to get fresh pace after resume
+        recentSamples = []
+        lastLocation = nil
+        
         runState = .running
         locationService.resumeTracking()
         startTimer()
@@ -215,14 +244,12 @@ class RunTrackingViewModel: ObservableObject {
             pausedDuration += Date().timeIntervalSince(pauseStart)
         }
         
-        // Record final partial split if we have any distance in current mile
-        if currentSplitDistance > 0 {
-            // Don't add partial splits to the splits array, but could calculate pace
-        }
-        
         runState = .finished
         locationService.stopTracking()
         stopTimer()
+        
+        // Calculate final average pace
+        currentPace = calculateAveragePace()
         
         // Success haptic
         let notificationFeedback = UINotificationFeedbackGenerator()
@@ -326,7 +353,46 @@ class RunTrackingViewModel: ObservableObject {
     }
     
     private func processLocationUpdate(_ location: CLLocation) {
-        guard runState == .running else { return }
+        guard runState == .running else { 
+            return 
+        }
+        
+        let now = Date()
+        
+        // Use CLLocation's speed property if available and valid
+        let gpsSpeed = location.speed >= 0 ? location.speed : 0
+        print("🏃 Location update: speed=\(String(format: "%.2f", gpsSpeed))m/s, accuracy=\(String(format: "%.1f", location.horizontalAccuracy))m")
+        
+        // Determine if user is stationary using GPS speed
+        let wasStationary = isStationary
+        isStationary = gpsSpeed < Self.stationarySpeedThreshold
+        
+        if isStationary {
+            print("   🧍 User is stationary (speed < \(Self.stationarySpeedThreshold)m/s)")
+            // Don't add to route when stationary to avoid GPS drift
+            // But still update the last location for when movement resumes
+            stationaryLocationBuffer.append(location)
+            if stationaryLocationBuffer.count > stationaryBufferSize {
+                stationaryLocationBuffer.removeFirst()
+            }
+            
+            // Show "--:--" pace when stationary
+            if wasStationary != isStationary {
+                // Just became stationary - keep last known pace for a moment
+                print("   ⏸️ Movement stopped")
+            }
+            return
+        }
+        
+        // User is moving - process the location
+        print("   🏃‍♂️ User is moving")
+        
+        // If we just started moving, use the average of stationary buffer as reference
+        if wasStationary && !isStationary && !stationaryLocationBuffer.isEmpty {
+            lastLocation = stationaryLocationBuffer.last
+            stationaryLocationBuffer.removeAll()
+            print("   ▶️ Movement resumed from stationary")
+        }
         
         // Add to route
         let coordinate = location.coordinate
@@ -347,7 +413,7 @@ class RunTrackingViewModel: ObservableObject {
         // Calculate elevation gain
         if let lastAlt = lastAltitude {
             let altDiff = altitudeFeet - lastAlt
-            if altDiff > 0 {
+            if altDiff > 3 { // Only count gains > 3 feet to filter noise
                 elevationGain += altDiff
             }
         }
@@ -356,21 +422,86 @@ class RunTrackingViewModel: ObservableObject {
         // Calculate distance from last location
         if let last = lastLocation {
             let additionalDistance = location.distance(from: last)
+            let timeSinceLast = location.timestamp.timeIntervalSince(last.timestamp)
             
-            // Filter out unrealistic jumps (>100m in a single update)
-            if additionalDistance < 100 {
+            // Calculate instantaneous speed from distance/time
+            let calculatedSpeed = timeSinceLast > 0 ? additionalDistance / timeSinceLast : 0
+            
+            print("   📏 Distance: \(String(format: "%.2f", additionalDistance))m in \(String(format: "%.1f", timeSinceLast))s")
+            print("   🚀 Calculated speed: \(String(format: "%.2f", calculatedSpeed))m/s (\(String(format: "%.1f", calculatedSpeed * 2.237))mph)")
+            
+            // Filter: accept if calculated speed is reasonable for running/walking
+            let isReasonableSpeed = calculatedSpeed >= Self.stationarySpeedThreshold && 
+                                   calculatedSpeed <= Self.maxRealisticSpeed
+            let isReasonableDistance = additionalDistance >= 1.0 && additionalDistance < 200 // 1-200m
+            
+            if isReasonableSpeed && isReasonableDistance {
                 distance += additionalDistance
                 currentSplitDistance += additionalDistance
+                
+                print("   ✅ Distance added! Total: \(String(format: "%.0f", distance))m (\(distanceFormatted) mi)")
+                
+                // Add sample for pace calculation (using actual timestamps!)
+                let sample = LocationSample(
+                    location: location,
+                    cumulativeDistance: distance,
+                    timestamp: location.timestamp
+                )
+                recentSamples.append(sample)
                 
                 // Check for mile split
                 checkForMileSplit()
                 
-                // Update pace with rolling average
-                updatePaceRolling(additionalDistance: additionalDistance)
+                // Update pace using actual timestamps
+                updatePaceFromSamples()
+            } else {
+                print("   ⚠️ Filtered: speed=\(String(format: "%.2f", calculatedSpeed))m/s, distance=\(String(format: "%.1f", additionalDistance))m")
             }
+        } else {
+            print("   ℹ️ First location recorded")
         }
         
         lastLocation = location
+    }
+    
+    private func updatePaceFromSamples() {
+        // Remove samples older than our window
+        let windowStart = Date().addingTimeInterval(-paceWindowSeconds)
+        recentSamples = recentSamples.filter { $0.timestamp > windowStart }
+        
+        // Need at least 2 samples to calculate pace
+        guard recentSamples.count >= 2,
+              let oldest = recentSamples.first,
+              let newest = recentSamples.last else {
+            print("   ⏱️ Not enough samples for pace (\(recentSamples.count) samples)")
+            return
+        }
+        
+        // Calculate pace from actual distance traveled and actual time elapsed
+        let windowDistance = newest.cumulativeDistance - oldest.cumulativeDistance
+        let windowTime = newest.timestamp.timeIntervalSince(oldest.timestamp)
+        
+        guard windowDistance > 0 && windowTime > 3 else {
+            print("   ⏱️ Window too small: \(String(format: "%.1f", windowDistance))m in \(String(format: "%.1f", windowTime))s")
+            return
+        }
+        
+        // Calculate seconds per mile
+        let milesInWindow = windowDistance / Self.metersPerMile
+        let secondsPerMile = windowTime / milesInWindow
+        
+        // Sanity check: pace should be between 4:00/mi and 30:00/mi
+        if secondsPerMile >= 240 && secondsPerMile <= 1800 {
+            // Smooth the pace update
+            if currentPace > 0 {
+                currentPace = currentPace * 0.7 + secondsPerMile * 0.3 // Weighted average
+            } else {
+                currentPace = secondsPerMile
+            }
+            print("   ⏱️ Pace: \(paceFormatted)/mi (window: \(String(format: "%.0f", windowDistance))m in \(String(format: "%.0f", windowTime))s)")
+        } else {
+            print("   ⚠️ Pace out of range: \(String(format: "%.0f", secondsPerMile))s/mi")
+        }
     }
     
     private func checkForMileSplit() {
@@ -391,27 +522,6 @@ class RunTrackingViewModel: ObservableObject {
             let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
             impactFeedback.impactOccurred()
         }
-    }
-    
-    private func updatePaceRolling(additionalDistance: Double) {
-        recentDistances.append(additionalDistance)
-        recentTimes.append(1.0) // Assuming ~1 second intervals
-        
-        // Keep window size limited
-        while recentDistances.count > rollingWindowSize {
-            recentDistances.removeFirst()
-            recentTimes.removeFirst()
-        }
-        
-        // Calculate rolling pace
-        let totalRecentDistance = recentDistances.reduce(0, +)
-        let totalRecentTime = recentTimes.reduce(0, +)
-        
-        guard totalRecentDistance > 0 else { return }
-        
-        // Seconds per mile
-        let milesInWindow = totalRecentDistance / Self.metersPerMile
-        currentPace = totalRecentTime / milesInWindow
     }
     
     private func calculateAveragePace() -> Double {
@@ -458,8 +568,9 @@ class RunTrackingViewModel: ObservableObject {
         currentSplitDistance = 0
         currentSplitTime = 0
         splitStartTime = 0
-        recentDistances = []
-        recentTimes = []
+        recentSamples = []
+        stationaryLocationBuffer = []
+        isStationary = true
     }
     
     private func formatTime(_ time: TimeInterval) -> String {

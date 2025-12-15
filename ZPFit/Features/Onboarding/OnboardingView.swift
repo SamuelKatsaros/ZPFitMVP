@@ -130,6 +130,13 @@ struct WelcomeStep: View {
 // MARK: - Step 1: Email & Password
 struct EmailPasswordStep: View {
     @ObservedObject var viewModel: OnboardingViewModel
+    @FocusState private var focusedField: Field?
+    
+    enum Field: Hashable {
+        case email
+        case password
+        case confirmPassword
+    }
     
     var body: some View {
         VStack(spacing: 20) {
@@ -150,7 +157,12 @@ struct EmailPasswordStep: View {
                             placeholder: "Email",
                             text: $viewModel.email,
                             keyboardType: .emailAddress,
-                            autocapitalization: .never
+                            autocapitalization: .never,
+                            textContentType: .emailAddress,
+                            focusedField: $focusedField,
+                            field: .email,
+                            submitLabel: .next,
+                            onSubmit: { focusedField = .password }
                         )
                         
                         // Email availability indicator
@@ -179,26 +191,36 @@ struct EmailPasswordStep: View {
                     icon: "lock.fill",
                     placeholder: "Password (min 6 characters)",
                     text: $viewModel.password,
-                    isSecure: true
+                    isSecure: true,
+                    textContentType: .newPassword,
+                    focusedField: $focusedField,
+                    field: .password,
+                    submitLabel: .next,
+                    onSubmit: { focusedField = .confirmPassword }
                 )
                 
                 CustomTextField(
                     icon: "lock.fill",
                     placeholder: "Confirm Password",
                     text: $viewModel.confirmPassword,
-                    isSecure: true
+                    isSecure: true,
+                    textContentType: .newPassword,
+                    focusedField: $focusedField,
+                    field: .confirmPassword,
+                    submitLabel: .go,
+                    onSubmit: viewModel.nextStep
                 )
             }
             .padding(.horizontal, 40)
             
             Button(action: viewModel.nextStep) {
                 Text("Next")
-                    .font(.ZP.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(viewModel.isEmailStepValid ? Color.ZP.primary : Color.ZP.cardHover)
-                    .foregroundStyle(viewModel.isEmailStepValid ? Color.ZP.textBlack : Color.ZP.textSecondary)
-                    .cornerRadius(12)
+                .font(.ZP.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(viewModel.isEmailStepValid ? Color.ZP.primary : Color.ZP.cardHover)
+                .foregroundStyle(viewModel.isEmailStepValid ? Color.ZP.textBlack : Color.ZP.textSecondary)
+                .cornerRadius(12)
             }
             .disabled(!viewModel.isEmailStepValid)
             .padding(.horizontal, 40)
